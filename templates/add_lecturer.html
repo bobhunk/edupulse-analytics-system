@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Lecturer - EduPulse{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-title">
+                <h1>Add New Lecturer</h1>
+                <p class="text-muted">Create a new lecturer account in the system</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Lecturer Information</h5>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('add_lecturer') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                            <div class="form-text">Enter the lecturer's full name (First and Last name)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                            <div class="form-text">This will be used as the lecturer's login username</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="department" class="form-label">Department</label>
+                            <select class="form-select" id="department" name="department" required>
+                                <option value="" selected disabled>Select Department</option>
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Data Science">Data Science</option>
+                                <option value="Research Methods">Research Methods</option>
+                                <option value="Ethics">Ethics</option>
+                            </select>
+                            <div class="form-text">Select the department this lecturer belongs to</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="specialization" class="form-label">Specialization</label>
+                            <input type="text" class="form-control" id="specialization" name="specialization">
+                            <div class="form-text">Optional: Enter the lecturer's area of specialization</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Course Units Taught</label>
+                            <div class="course-checkboxes">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="courses" value="1" id="course1">
+                                    <label class="form-check-label" for="course1">
+                                        CS101 - Object Oriented Programming
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="courses" value="2" id="course2">
+                                    <label class="form-check-label" for="course2">
+                                        CS201 - Research Methods and Publications
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="courses" value="3" id="course3">
+                                    <label class="form-check-label" for="course3">
+                                        DS301 - Data Science Life Cycle
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="courses" value="4" id="course4">
+                                    <label class="form-check-label" for="course4">
+                                        CS404 - Advanced Christian Ethics
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-text">Select the course units this lecturer will teach</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-success">Add Lecturer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

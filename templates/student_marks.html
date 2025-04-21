@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ course.course_code }}: {{ course.title }} - Marks - EduPulse{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="page-title">{{ course.course_code }}: {{ course.title }} - My Marks</h1>
+                <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                </a>
+            </div>
+            <p class="text-muted">lecturer: {{ course.lecturer_name }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Performance Summary -->
+        <div class="col-md-4">
+            <div class="card gradient-card mb-4">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Performance Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="performance-circle mx-auto mb-3 {{ 'bg-danger' if average_percentage < 60 else 'bg-warning' if average_percentage < 75 else 'bg-success' }}">
+                            <span class="performance-value">{{ "%.1f"|format(average_percentage) }}%</span>
+                        </div>
+                        <h5>Overall Grade</h5>
+                        <p class="text-{{ 'danger' if average_percentage < 60 else 'warning' if average_percentage < 75 else 'success' }}">
+                            {% if average_percentage >= 90 %}A (Excellent)
+                            {% elif average_percentage >= 80 %}B+ (Very Good)
+                            {% elif average_percentage >= 70 %}B (Good)
+                            {% elif average_percentage >= 60 %}C (Satisfactory)
+                            {% else %}D (Needs Improvement)
+                            {% endif %}
+                        </p>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <h6 class="mb-2">Status</h6>
+                        {% if at_risk %}
+                        <div class="alert alert-danger py-2">
+                            <i class="fas fa-exclamation-triangle me-2"></i> You are currently at risk in this course.
+                        </div>
+                        <p class="small text-muted">Your current performance is below the required threshold. Please contact your lecturer for support.</p>
+                        {% else %}
+                        <div class="alert alert-success py-2">
+                            <i class="fas fa-check-circle me-2"></i> You are in good standing in this course.
+                        </div>
+                        <p class="small text-muted">Keep up the good work! Your performance meets or exceeds expectations.</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#contactModal">
+                            <i class="fas fa-envelope me-2"></i> Contact lecturer
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card gradient-card">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Course Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-primary">Course Code</h6>
+                        <p>{{ course.course_code }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-primary">Course Title</h6>
+                        <p>{{ course.title }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-primary">lecturer</h6>
+                        <p>{{ course.lecturer_name }}</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="text-primary">Semester</h6>
+                        <p>{{ course.semester }} {{ course.year }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assessment Details -->
+        <div class="col-md-8">
+            <div class="card gradient-card">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Assessment Scores</h5>
+                </div>
+                <div class="card-body">
+                    {% if assessments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Assessment</th>
+                                    <th>Type</th>
+                                    <th>Score</th>
+                                    <th>Max Points</th>
+                                    <th>Percentage</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assessment in assessments %}
+                                <tr>
+                                    <td>{{ assessment.name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'primary' if assessment.type == 'quiz' else 'info' if assessment.type == 'assignment' else 'warning' if assessment.type == 'exam' else 'success' }}">
+                                            {{ assessment.type|capitalize }}
+                                        </span>
+                                    </td>
+                                    <td>{{ assessment.score }}</td>
+                                    <td>{{ assessment.max_points }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-{{ 'danger' if assessment.percentage < 60 else 'warning' if assessment.percentage < 75 else 'success' }}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ assessment.percentage }}%;" 
+                                                     aria-valuenow="{{ assessment.percentage }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100"></div>
+                                            </div>
+                                            <span>{{ "%.1f"|format(assessment.percentage) }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ assessment.submission_date }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No assessment data available for this course.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contact Modal -->
+<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contactModalLabel">Contact lecturer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="contactForm" action="{{ url_for('contact_lecturer') }}" method="POST">
+                    <input type="hidden" name="lecturer_id" value="{{ course.lecturer_id }}">
+                    <input type="hidden" name="course_id" value="{{ course.id }}">
+                    <div class="mb-3">
+                        <label for="recipient" class="form-label">To:</label>
+                        <input type="text" class="form-control" id="recipient" value="{{ course.lecturer_name }}" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="subject" class="form-label">Subject:</label>
+                        <input type="text" class="form-control" id="subject" name="subject" value="Question about {{ course.course_code }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message:</label>
+                        <textarea class="form-control" id="message" name="message" rows="5" required>Dear {{ course.lecturer_name }},
+
+I am writing regarding the {{ course.course_code }} course. 
+
+[Your message here]
+
+Thank you for your time and assistance.
+
+Best regards,
+{{ user_name }}
+                        </textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="submit" form="contactForm" class="btn btn-primary">
+                    <i class="fas fa-paper-plane me-1"></i>Send Message
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .performance-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+    }
+    
+    .performance-value {
+        font-size: 28px;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}

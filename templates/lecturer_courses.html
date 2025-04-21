@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}My Courses - {{ lecturer.name }} - EduPulse{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1 class="mb-4">Courses Taught by {{ lecturer.name }}</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>lecturer Information</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Name:</strong> {{ lecturer.name }}</p>
+                        <p><strong>Email:</strong> {{ lecturer.email }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Department:</strong> {{ lecturer.department }}</p>
+                        <p><strong>Total Courses:</strong> {{ courses|length }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                Courses You Teach
+            </div>
+            <div class="card-body">
+                {% if courses %}
+                <table class="table data-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Title</th>
+                            <th>Term</th>
+                            <th>Year</th>
+                            <th>Students</th>
+                            <th>View</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in courses %}
+                        <tr>
+                            <td>{{ course.course_code }}</td>
+                            <td>{{ course.title }}</td>
+                            <td>{{ course.term }}</td>
+                            <td>{{ course.year }}</td>
+                            <td>{{ course.student_count }}</td>
+                            <td>
+                                <a href="{{ url_for('course_dashboard', course_id=course.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-chart-line"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="alert alert-info">
+                    You are not teaching any courses yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

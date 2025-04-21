@@ -1,0 +1,16 @@
+﻿student_id,student_email,course_id,assessment_name,score,max_score,date
+7,alfred.kizito@gmail.com,DS301,Quiz 1,85,100,01/04/2025
+5,chris.mugenyi@gmail.com,DS301,Quiz 1,92,100,01/04/2025
+9,innocent.mugaya@gmail.com,DS301,Quiz 1,78,100,01/04/2025
+8,jonah.kasinga@gmail.com,DS301,Quiz 1,88,100,01/04/2025
+10,paul.kintu@gmail.com,DS301,Quiz 1,75,100,01/04/2025
+7,alfred.kizito@gmail.com,DS301,Assignment 1,82,100,05/04/2025
+5,chris.mugenyi@gmail.com,DS301,Assignment 1,95,100,05/04/2025
+9,innocent.mugaya@gmail.com,DS301,Assignment 1,80,100,05/04/2025
+8,jonah.kasinga@gmail.com,DS301,Assignment 1,85,100,05/04/2025
+10,paul.kintu@gmail.com,DS301,Assignment 1,78,100,05/04/2025
+7,alfred.kizito@gmail.com,DS301,Midterm Exam,79,100,10/04/2025
+5,chris.mugenyi@gmail.com,DS301,Midterm Exam,91,100,10/04/2025
+9,innocent.mugaya@gmail.com,DS301,Midterm Exam,76,100,10/04/2025
+8,jonah.kasinga@gmail.com,DS301,Midterm Exam,83,100,10/04/2025
+10,paul.kintu@gmail.com,DS301,Midterm Exam,72,100,10/04/2025

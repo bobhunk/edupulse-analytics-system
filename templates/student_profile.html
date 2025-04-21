@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Profile - EduPulse{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card profile-card mb-4">
+                <div class="card-body text-center">
+                    <div class="avatar-circle mx-auto mb-4">
+                        {{ session.get('name', 'User')[0] | upper }}
+                    </div>
+                    <h3 class="card-title mb-1">{{ student.name }}</h3>
+                    <p class="text-muted mb-3">{{ student.department }}</p>
+                    <div class="d-flex justify-content-center mb-3">
+                        <a href="mailto:{{ student.email }}" class="btn btn-outline-primary btn-sm me-2">
+                            <i class="fas fa-envelope me-1"></i> Email
+                        </a>
+                        <a href="#" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-edit me-1"></i> Edit Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Student Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="small text-muted">Email</label>
+                        <div>{{ student.email }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted">Department</label>
+                        <div>{{ student.department }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="small text-muted">Enrollment Date</label>
+                        <div>{{ student.enrollment_date }}</div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="small text-muted">Student ID</label>
+                        <div>{{ student.id }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Enrolled Courses</h5>
+                    <span class="badge bg-primary">{{ courses|length }} Courses</span>
+                </div>
+                <div class="card-body">
+                    {% if courses %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Course Code</th>
+                                    <th>Title</th>
+                                    <th>Lecturer</th>
+                                    <th>Semester</th>
+                                    <th>Year</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for course in courses %}
+                                <tr>
+                                    <td>{{ course.course_code }}</td>
+                                    <td>{{ course.title }}</td>
+                                    <td>{{ course.lecturer_name }}</td>
+                                    <td>{{ course.semester }}</td>
+                                    <td>{{ course.year }}</td>
+                                    <td>
+                                        <a href="/course/{{ course.id }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <div class="mb-3">
+                            <i class="fas fa-book-open fa-3x text-muted"></i>
+                        </div>
+                        <h5>No Courses Enrolled</h5>
+                        <p class="text-muted">You are not enrolled in any courses yet.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Academic Performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted mb-2">Overall GPA</h6>
+                                    <h2 class="mb-0">{{ overall_gpa|default('N/A') }}</h2>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <h6 class="text-muted mb-2">Attendance Rate</h6>
+                                    <h2 class="mb-0">{{ attendance_rate|default('N/A') }}%</h2>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="performance-chart" style="height: 250px;">
+                        <!-- Chart will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-card {
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .avatar-circle {
+        width: 100px;
+        height: 100px;
+        background-color: var(--primary-color);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 600;
+    }
+    
+    .card-header {
+        background-color: rgba(var(--primary-rgb), 0.05);
+        border-bottom: 1px solid rgba(var(--primary-rgb), 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sample data - replace with actual data from backend
+        const performanceData = {
+            x: ['Quiz 1', 'Quiz 2', 'Midterm', 'Project', 'Final'],
+            y: [85, 78, 92, 88, 90],
+            type: 'scatter',
+            mode: 'lines+markers',
+            marker: {
+                color: 'rgba(65, 105, 225, 0.8)',
+                size: 8
+            },
+            line: {
+                color: 'rgba(65, 105, 225, 0.8)',
+                width: 3
+            }
+        };
+        
+        const layout = {
+            margin: { t: 20, r: 20, l: 40, b: 40 },
+            xaxis: {
+                title: 'Assessments'
+            },
+            yaxis: {
+                title: 'Score (%)',
+                range: [0, 100]
+            }
+        };
+        
+        Plotly.newPlot('performance-chart', [performanceData], layout);
+    });
+</script>
+{% endblock %}

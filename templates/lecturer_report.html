@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Lecturer Report - {{ lecturer.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="mb-4">Lecturer Report: {{ lecturer.name }}</h1>
+            
+            <!-- Lecturer Information -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Lecturer Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Name:</strong> {{ lecturer.name }}</p>
+                            <p><strong>Email:</strong> {{ lecturer.email }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Department:</strong> {{ lecturer.department }}</p>
+                            <p><strong>Courses Teaching:</strong> {{ courses|length }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Overall Statistics -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Overall Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h3>{{ total_students }}</h3>
+                                    <p class="text-muted">Total Students</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card text-center mb-3">
+                                <div class="card-body">
+                                    <h3>{{ total_assessments }}</h3>
+                                    <p class="text-muted">Total Assessments</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Course List -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Courses</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Course Code</th>
+                                    <th>Title</th>
+                                    <th>Semester</th>
+                                    <th>Year</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for course in courses %}
+                                <tr>
+                                    <td>{{ course.course_code }}</td>
+                                    <td>{{ course.title }}</td>
+                                    <td>{{ course.semester }}</td>
+                                    <td>{{ course.year }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- At-Risk Students -->
+            {% if at_risk_students %}
+            <div class="card mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">At-Risk Students</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Student Name</th>
+                                    <th>Email</th>
+                                    <th>Course</th>
+                                    <th>Performance</th>
+                                    <th>Attendance</th>
+                                    <th>Risk Factors</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in at_risk_students %}
+                                <tr>
+                                    <td>{{ student.name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>{{ student.course_code }} - {{ student.course_title }}</td>
+                                    <td>{{ student.performance }}%</td>
+                                    <td>{{ student.attendance_rate }}%</td>
+                                    <td>
+                                        <ul class="mb-0">
+                                            {% for factor in student.risk_factors %}
+                                            <li>{{ factor }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="text-center mb-4">
+                <a href="{{ url_for('lecturer_dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+                <button class="btn btn-success" onclick="window.print()">Print Report</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

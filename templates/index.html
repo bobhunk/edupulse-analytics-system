@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+
+{% block title %}EduPulse - Educational Analytics Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Main dashboard styling */
+    .welcome {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 2.5rem 0;
+        background: linear-gradient(120deg, rgba(78, 84, 200, 0.2), rgba(143, 148, 251, 0.2));
+        border-radius: 15px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .welcome h1 {
+        font-size: 2.8rem;
+        margin-bottom: 0.5rem;
+        color: #4e54c8;
+        font-weight: 700;
+        position: relative;
+        display: inline-block;
+    }
+
+    .welcome h1::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(to right, #4e54c8, #8f94fb);
+        bottom: -8px;
+        left: 0;
+        border-radius: 4px;
+    }
+    
+    .dashboard-section {
+        margin-bottom: 3rem;
+    }
+    
+    .dashboard-section h2 {
+        text-align: center;
+        margin-bottom: 2rem;
+        color: #444;
+        position: relative;
+        padding-bottom: 12px;
+        font-size: 2.2rem;
+        font-weight: 600;
+    }
+    
+    .dashboard-section h2:after {
+        content: '';
+        position: absolute;
+        width: 120px;
+        height: 4px;
+        background: linear-gradient(to right, #4e54c8, #8f94fb);
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        border-radius: 4px;
+    }
+    
+    .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 2rem;
+    }
+    
+    .card {
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-12px);
+        box-shadow: 0 20px 35px rgba(0, 0, 0, 0.15);
+    }
+    
+    .card-header {
+        padding: 1.8rem;
+        border-bottom: none;
+    }
+    
+    .card-header h3 {
+        margin: 0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 1.5rem;
+    }
+    
+    .card-header h3 i {
+        font-size: 1.8rem;
+    }
+    
+    .card-body {
+        padding: 1.8rem;
+        background-color: white;
+    }
+    
+    .card-body ul {
+        margin-top: 1.2rem;
+        padding-left: 1.8rem;
+    }
+    
+    .card-body li {
+        margin-bottom: 0.8rem;
+        position: relative;
+        font-size: 1.05rem;
+    }
+    
+    .card-body li:before {
+        content: '✓';
+        color: #4CAF50;
+        position: absolute;
+        left: -1.5rem;
+        font-weight: bold;
+    }
+    
+    .card-footer {
+        padding: 1.5rem;
+        background: transparent;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        text-align: center;
+    }
+    
+    /* Card specific styling */
+    .student-card {
+        background: white;
+    }
+    
+    .student-card .card-header {
+        background: linear-gradient(135deg, #4e54c8, #8f94fb);
+        color: white;
+    }
+    
+    .lecturer-card {
+        background: white;
+    }
+    
+    .lecturer-card .card-header {
+        background: linear-gradient(135deg, #11998e, #38ef7d);
+        color: white;
+    }
+    
+    .admin-card {
+        background: white;
+    }
+    
+    .admin-card .card-header {
+        background: linear-gradient(135deg, #eb3349, #f45c43);
+        color: white;
+    }
+    
+    /* Button styling */
+    .btn-dashboard {
+        padding: 0.8rem 1.5rem;
+        border-radius: 30px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-dashboard::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.2);
+        transform: scaleX(0);
+        transform-origin: right;
+        transition: transform 0.3s ease;
+        z-index: -1;
+    }
+    
+    .btn-dashboard:hover::before {
+        transform: scaleX(1);
+        transform-origin: left;
+    }
+    
+    .btn-student {
+        background: linear-gradient(135deg, #4e54c8, #8f94fb);
+        color: white;
+    }
+    
+    .btn-lecturer {
+        background: linear-gradient(135deg, #11998e, #38ef7d);
+        color: white;
+    }
+    
+    .btn-admin {
+        background: linear-gradient(135deg, #eb3349, #f45c43);
+        color: white;
+    }
+    
+    /* Stats grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 2rem;
+        margin-top: 2.5rem;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        text-align: center;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12);
+    }
+    
+    .stat-card i {
+        margin-bottom: 1.2rem;
+        font-size: 2.5rem;
+        background: linear-gradient(135deg, #4e54c8, #8f94fb);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .stat-card .value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.8rem;
+        background: linear-gradient(135deg, #4e54c8, #8f94fb);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .stat-card .label {
+        color: #555;
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+    
+    /* Animation classes */
+    .fade-in {
+        animation: fadeIn 1s ease-in-out;
+    }
+    
+    .fade-in-delay {
+        opacity: 0;
+        animation: fadeIn 1s ease-in-out forwards;
+    }
+    
+    .student-card {
+        animation-delay: 0.2s;
+    }
+    
+    .lecturer-card {
+        animation-delay: 0.4s;
+    }
+    
+    .admin-card {
+        animation-delay: 0.6s;
+    }
+    
+    .slide-in-up {
+        animation: slideInUp 0.8s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideInUp {
+        from {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Welcome Section -->
+<section class="welcome slide-in-up">
+    <h1>Welcome to EduPulse</h1>
+    <p>An Educational Analytics Dashboard for Higher Education</p>
+</section>
+
+<!-- Dashboard Options -->
+<section class="dashboard-section">
+    <h2>Select Your Dashboard</h2>
+    
+    <div class="card-grid">
+        <!-- Student Dashboard Card -->
+        <div class="card student-card fade-in-delay">
+            <div class="card-header">
+                <h3><i class="fas fa-user-graduate"></i> Student Dashboard</h3>
+            </div>
+            <div class="card-body">
+                <p>Access your academic performance, attendance records, and course information. Track your progress and identify areas for improvement.</p>
+                <ul>
+                    <li>View your grades and performance trends</li>
+                    <li>Check attendance records</li>
+                    <li>Access course materials</li>
+                </ul>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('student_dashboard') }}" class="btn btn-dashboard btn-student">Student Dashboard</a>
+            </div>
+        </div>
+        
+        <!-- Lecturer Dashboard Card -->
+        <div class="card lecturer-card fade-in-delay">
+            <div class="card-header">
+                <h3><i class="fas fa-chalkboard-teacher"></i> Lecturer Dashboard</h3>
+            </div>
+            <div class="card-body">
+                <p>Monitor course performance, student attendance, and identify at-risk students. Get insights to improve teaching effectiveness.</p>
+                <ul>
+                    <li>Track class performance metrics</li>
+                    <li>Monitor student attendance</li>
+                    <li>Identify students needing support</li>
+                </ul>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('lecturer_dashboard') }}" class="btn btn-dashboard btn-lecturer">Lecturer Dashboard</a>
+            </div>
+        </div>
+        
+        <!-- Administrator Dashboard Card -->
+        <div class="card admin-card fade-in-delay">
+            <div class="card-header">
+                <h3><i class="fas fa-user-shield"></i> Administrator Dashboard</h3>
+            </div>
+            <div class="card-body">
+                <p>Manage institutional data, generate reports, and analyze trends. Make data-driven decisions for your educational institution.</p>
+                <ul>
+                    <li>View institution-wide analytics</li>
+                    <li>Generate comprehensive reports</li>
+                    <li>Manage system settings</li>
+                </ul>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-dashboard btn-admin">Administrator Dashboard</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- About EduPulse -->
+<section class="dashboard-section">
+    <h2>About EduPulse</h2>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <i class="fas fa-users"></i>
+            <div class="value">{{ student_count }}</div>
+            <div class="label">Active Students</div>
+        </div>
+        
+        <div class="stat-card">
+            <i class="fas fa-chalkboard-teacher"></i>
+            <div class="value">{{ lecturer_count }}</div>
+            <div class="label">Lecturers</div>
+        </div>
+        
+        <div class="stat-card">
+            <i class="fas fa-book"></i>
+            <div class="value">{{ course_count }}</div>
+            <div class="label">Courses</div>
+        </div>
+        
+        <div class="stat-card">
+            <i class="fas fa-chart-line"></i>
+            <div class="value">{{ assessment_count }}</div>
+            <div class="label">Assessments</div>
+        </div>
+    </div>
+</section>
+{% endblock %}

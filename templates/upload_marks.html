@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Student Marks - EduPulse{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1 class="mb-4">Upload Student Marks</h1>
+        <p>Upload CSV files containing student marks for your courses.</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                Upload CSV File
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('upload_marks_csv') }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Select CSV File</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".csv" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Upload CSV
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                CSV Format Instructions
+            </div>
+            <div class="card-body">
+                <p>The CSV file should contain the following columns:</p>
+                <ul>
+                    <li><strong>student_id</strong>: Student ID number</li>
+                    <li><strong>student_email</strong>: Student email address</li>
+                    <li><strong>course_id</strong>: Course ID (e.g., CS101)</li>
+                    <li><strong>assessment_name</strong>: Name of the assessment</li>
+                    <li><strong>score</strong>: Student's score</li>
+                    <li><strong>max_score</strong>: Maximum possible score</li>
+                    <li><strong>date</strong>: Date of the assessment (YYYY-MM-DD)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                Data Integration Process
+            </div>
+            <div class="card-body">
+                <div class="process-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h5>Prepare CSV</h5>
+                            <p>Format your data according to the required structure</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h5>Upload File</h5>
+                            <p>Select your CSV file and associated course</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h5>Validation</h5>
+                            <p>System validates the data format and content</p>
+                        </div>
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h5>Integration</h5>
+                            <p>Data is integrated into the EduPulse analytics system</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .process-steps {
+        display: flex;
+        justify-content: space-between;
+        margin: 20px 0;
+    }
+    
+    .step {
+        display: flex;
+        align-items: center;
+        width: 23%;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--bs-primary);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 15px;
+    }
+    
+    .step-content h5 {
+        margin-bottom: 5px;
+    }
+    
+    .step-content p {
+        margin-bottom: 0;
+        font-size: 0.9rem;
+        color: #666;
+    }
+    
+    @media (max-width: 768px) {
+        .process-steps {
+            flex-direction: column;
+        }
+        
+        .step {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+    }
+</style>
+{% endblock %}

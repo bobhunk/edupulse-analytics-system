@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ course.course_code }}: {{ course.title }} - EduPulse{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="page-title">{{ course.course_code }}: {{ course.title }}</h1>
+                <a href="{{ url_for('lecturer_dashboard') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Course Information -->
+        <div class="col-md-4">
+            <div class="card gradient-card mb-4">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Course Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="course-icon me-3">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-1">{{ course.course_code }}</h4>
+                            <p class="text-muted mb-0">{{ course.title }}</p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <h6 class="text-primary">lecturer</h6>
+                        <p>{{ course.lecturer_name }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-primary">Semester</h6>
+                        <p>{{ course.semester }} {{ course.year }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-primary">Enrolled Students</h6>
+                        <p>{{ enrolled_students|length }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-primary">At-Risk Students</h6>
+                        <p>{{ at_risk_students|length }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card gradient-card mb-4">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Class Schedule</h5>
+                </div>
+                <div class="card-body">
+                    {% if schedule %}
+                    <div class="list-group">
+                        {% for session in schedule %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ session.day }}</h6>
+                                    <p class="mb-0 text-muted">{{ session.time }}</p>
+                                </div>
+                                <span class="badge bg-primary">{{ session.location }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No schedule information available.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card gradient-card">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Course Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('upload_marks') }}?course={{ course.course_code }}" class="btn btn-primary">
+                            <i class="fas fa-upload me-2"></i> Upload Marks
+                        </a>
+                        <button class="btn btn-outline-primary">
+                            <i class="fas fa-file-alt me-2"></i> Generate Report
+                        </button>
+                        <button class="btn btn-outline-primary">
+                            <i class="fas fa-envelope me-2"></i> Email All Students
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Details -->
+        <div class="col-md-8">
+            <div class="card gradient-card mb-4">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Enrolled Students</h5>
+                </div>
+                <div class="card-body">
+                    {% if enrolled_students %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Average Score</th>
+                                    <th>Attendance</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in enrolled_students %}
+                                <tr>
+                                    <td>{{ student.name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-{{ 'danger' if student.performance < 60 else 'warning' if student.performance < 75 else 'success' }}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ student.performance }}%;" 
+                                                     aria-valuenow="{{ student.performance }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100"></div>
+                                            </div>
+                                            <span>{{ "%.1f"|format(student.performance) }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-{{ 'danger' if student.attendance_rate < 70 else 'warning' if student.attendance_rate < 85 else 'success' }}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ student.attendance_rate }}%;" 
+                                                     aria-valuenow="{{ student.attendance_rate }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100"></div>
+                                            </div>
+                                            <span>{{ "%.1f"|format(student.attendance_rate) }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if student.at_risk %}
+                                        <span class="badge bg-danger">At Risk</span>
+                                        {% else %}
+                                        <span class="badge bg-success">Good Standing</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('student_detail', student_id=student.id) }}?ref=course&course={{ course.course_code }}" class="btn btn-sm btn-primary">View</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No students enrolled in this course.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card gradient-card mb-4">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">At-Risk Students</h5>
+                </div>
+                <div class="card-body">
+                    {% if at_risk_students %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Average Score</th>
+                                    <th>Attendance</th>
+                                    <th>Risk Factors</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in at_risk_students %}
+                                <tr>
+                                    <td>{{ student.name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-danger" 
+                                                     role="progressbar" 
+                                                     style="width: {{ student.performance }}%;" 
+                                                     aria-valuenow="{{ student.performance }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100"></div>
+                                            </div>
+                                            <span>{{ "%.1f"|format(student.performance) }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-danger" 
+                                                     role="progressbar" 
+                                                     style="width: {{ student.attendance_rate }}%;" 
+                                                     aria-valuenow="{{ student.attendance_rate }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100"></div>
+                                            </div>
+                                            <span>{{ "%.1f"|format(student.attendance_rate) }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% for factor in student.risk_factors %}
+                                        <span class="badge bg-danger mb-1 d-block">{{ factor }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('student_detail', student_id=student.id) }}?ref=course&course={{ course.course_code }}" class="btn btn-sm btn-primary">View</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No at-risk students in this course.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card gradient-card">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Assessments</h5>
+                </div>
+                <div class="card-body">
+                    {% if assessments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Max Points</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assessment in assessments %}
+                                <tr>
+                                    <td>{{ assessment.name }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'primary' if assessment.type == 'quiz' else 'info' if assessment.type == 'assignment' else 'warning' }}">
+                                            {{ assessment.type|capitalize }}
+                                        </span>
+                                    </td>
+                                    <td>{{ assessment.max_points }}</td>
+                                    <td>{{ assessment.due_date }}</td>
+                                    <td>
+                                        {% if assessment.due_date < now %}
+                                        <span class="badge bg-success">Completed</span>
+                                        {% else %}
+                                        <span class="badge bg-primary">Upcoming</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No assessments available for this course.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .course-icon {
+        width: 60px;
+        height: 60px;
+        background-color: #4e73df;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 24px;
+    }
+</style>
+{% endblock %}

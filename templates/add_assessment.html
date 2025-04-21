@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Assessment{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Add New Assessment</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="course_id" class="form-label">Course</label>
+                            <select class="form-select" id="course_id" name="course_id" required>
+                                <option value="">Select a course</option>
+                                {% for course in courses %}
+                                <option value="{{ course.id }}">{{ course.course_code }} - {{ course.title }} ({{ course.semester }} {{ course.year }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Assessment Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="type" class="form-label">Assessment Type</label>
+                            <select class="form-select" id="type" name="type" required>
+                                <option value="Quiz">Quiz</option>
+                                <option value="Assignment">Assignment</option>
+                                <option value="Midterm">Midterm</option>
+                                <option value="Final Exam">Final Exam</option>
+                                <option value="Project">Project</option>
+                                <option value="Presentation">Presentation</option>
+                                <option value="Lab">Lab</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="date" class="form-label">Date</label>
+                            <input type="date" class="form-control" id="date" name="date" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="max_points" class="form-label">Maximum Points</label>
+                            <input type="number" class="form-control" id="max_points" name="max_points" min="1" required>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Add Assessment</button>
+                            <a href="{{ url_for('lecturer_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

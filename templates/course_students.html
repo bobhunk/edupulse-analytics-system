@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ course.course_code }} Students - EduPulse{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1 class="mb-4">{{ course.course_code }}: {{ course.title }} - Students</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <a href="{{ url_for('lecturer_dashboard') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Enrolled Students ({{ total_students }})</h5>
+                    <span class="badge bg-light text-primary">{{ course.semester }} {{ course.year }}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if students %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Program</th>
+                            <th>Performance</th>
+                            <th>Attendance Rate</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr class="{% if student.at_risk %}table-danger{% endif %}">
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.email }}</td>
+                            <td>{{ student.program }}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar {% if student.performance >= 80 %}bg-success{% elif student.performance >= 70 %}bg-info{% elif student.performance >= 60 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ student.performance }}%" 
+                                         aria-valuenow="{{ student.performance }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        {{ "%.1f"|format(student.performance) }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge {% if student.attendance_rate >= 80 %}bg-success{% elif student.attendance_rate >= 70 %}bg-warning{% else %}bg-danger{% endif %}" style="font-size: 14px; padding: 6px 10px;">
+                                    {{ "%.1f"|format(student.attendance_rate) }}%
+                                </span>
+                            </td>
+                            <td>
+                                {% if student.at_risk %}
+                                <span class="badge bg-danger">At Risk</span>
+                                {% else %}
+                                <span class="badge bg-success">Good Standing</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#contactModal" 
+                                        data-student-id="{{ student.id }}" data-student-name="{{ student.name }}">
+                                    <i class="fas fa-envelope"></i> Contact
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> No students are currently enrolled in this course.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

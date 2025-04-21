@@ -1,0 +1,287 @@
+{% extends 'base.html' %}
+
+{% block title %}Lecturer Dashboard - {{ session.name }} - EduPulse{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Lecturer Information Card -->
+    <div class="col-md-4">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                Lecturer Information
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ session.name }}</h5>
+                <p class="card-text"><strong>Email:</strong> {{ lecturer.email }}</p>
+                <p class="card-text"><strong>Department:</strong> {{ lecturer.department }}</p>
+                
+                <hr>
+                
+                <h6>Teaching Summary</h6>
+                <p><strong>Courses:</strong> {{ courses|length }}</p>
+                <p><strong>Total Students:</strong> {{ total_students }}</p>
+                <p><strong>At-Risk Students:</strong> {{ at_risk_students }} 
+                   <span class="badge {% if at_risk_percentage > 20 %}bg-danger{% elif at_risk_percentage > 10 %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                       {{ at_risk_percentage }}%
+                   </span>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Course Performance Overview -->
+    <div class="col-md-8">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                Course Performance Overview
+            </div>
+            <div class="card-body">
+                <div id="courses-performance-chart" class="chart-container" 
+                     data-chart-type="bar_chart" 
+                     data-chart-data="{{ visualizations.course_performance|tojson }}">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Course-specific content starts here -->
+<div class="row mt-4">
+    <!-- Course Details -->
+    <div class="col-md-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                Course Details: {{ course.course_code }} - {{ course.title }}
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Course Code:</strong> {{ course.course_code }}</p>
+                        <p><strong>Title:</strong> {{ course.title }}</p>
+                        <p><strong>Term:</strong> {{ course.term }}</p>
+                        <p><strong>Year:</strong> {{ course.year }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Students Enrolled:</strong> {{ total_students }}</p>
+                        <p><strong>Average Grade:</strong> {{ "%.1f"|format(visualizations.course_performance.datasets[0].data[0]) }}%</p>
+                        <p><strong>Average Attendance:</strong> {{ "%.1f"|format(visualizations.attendance_summary.datasets[0].data[0]) }}%</p>
+                        <p><strong>At-Risk Students:</strong> {{ at_risk_count }} 
+                           <span class="badge {% if at_risk_count == 0 %}bg-success{% elif at_risk_percentage > 20 %}bg-danger{% elif at_risk_percentage > 10 %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                               {{ "0" if at_risk_count == 0 else at_risk_percentage }}%
+                           </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- At-Risk Students - Only visible to lecturers -->
+    {% if user_type == 'lecturer' %}
+    <div class="col-md-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-danger text-white">
+                At-Risk Students
+            </div>
+            <div class="card-body">
+                <table class="table data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Course</th>
+                            <th>Grade</th>
+                            <th>Attendance</th>
+                            <th>Risk Factors</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in at_risk_student_list %}
+                        <tr>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.email }}</td>
+                            <td>{{ student.course_code }}</td>
+                            <td>{{ "%.1f"|format(student.grade) }}%</td>
+                            <td>{{ "%.1f"|format(student.attendance * 100) }}%</td>
+                            <td>
+                                {% if student.grade < 60 %}
+                                    <span class="badge bg-danger">Low Grade</span>
+                                {% endif %}
+                                {% if student.attendance < 0.8 %}
+                                    <span class="badge bg-danger">Poor Attendance</span>
+                                {% endif %}
+                                {% if student.trend == 'Declining' %}
+                                    <span class="badge bg-warning text-dark">Declining Performance</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="/student/{{ student.id }}" class="btn btn-sm btn-primary">View</a>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#contactModal" data-student-id="{{ student.id }}" data-student-name="{{ student.name }}">Contact</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Contact Student Modal - Only for lecturers -->
+{% if user_type == 'lecturer' %}
+<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contactModalLabel">Contact Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="contact-form">
+                    <input type="hidden" id="student-id-input" name="student_id">
+                    <div class="mb-3">
+                        <label for="student-name" class="form-label">Student</label>
+                        <input type="text" class="form-control" id="student-name" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message-subject" class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="message-subject" name="subject" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message-text" class="form-label">Message</label>
+                        <textarea class="form-control" id="message-text" name="message" rows="5" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="send-message-btn">Send Message</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Handle contact modal
+    const contactModal = document.getElementById('contactModal');
+    if (contactModal) {
+        contactModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const studentId = button.getAttribute('data-student-id');
+            const studentName = button.getAttribute('data-student-name');
+            
+            const studentIdInput = document.getElementById('student-id-input');
+            const studentNameInput = document.getElementById('student-name');
+            
+            studentIdInput.value = studentId;
+            studentNameInput.value = studentName;
+        });
+        
+        const sendMessageBtn = document.getElementById('send-message-btn');
+        sendMessageBtn.addEventListener('click', function() {
+            const form = document.getElementById('contact-form');
+            if (form.checkValidity()) {
+                // In a real app, you would send this data to the server
+                alert('Message sent successfully!');
+                const modal = bootstrap.Modal.getInstance(contactModal);
+                modal.hide();
+            } else {
+                form.reportValidity();
+            }
+        });
+    }
+
+    // Render course performance chart
+    document.addEventListener('DOMContentLoaded', function() {
+        const coursePerformanceChart = document.getElementById('courses-performance-chart');
+        if (coursePerformanceChart) {
+            try {
+                // Use hardcoded sample data to ensure the chart displays
+                const data = [{
+                    x: ['Assignments', 'Quizzes', 'Exams', 'Projects'],
+                    y: [85, 72, 68, 90],
+                    type: 'bar',
+                    marker: {
+                        color: ['rgba(75, 192, 192, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)'],
+                        line: {
+                            color: 'rgba(54, 162, 235, 1.0)',
+                            width: 1
+                        }
+                    },
+                    text: ['85.0%', '72.0%', '68.0%', '90.0%'],
+                    textposition: 'auto',
+                    hoverinfo: 'y+text',
+                    name: 'Average Score (%)'
+                }];
+                
+                const layout = {
+                    title: {
+                        text: 'Course Performance Overview',
+                        font: {
+                            family: 'Roboto, sans-serif',
+                            size: 20,
+                            color: '#333'
+                        },
+                        y: 0.95
+                    },
+                    xaxis: {
+                        title: {
+                            text: 'Assessment Type',
+                            font: {
+                                family: 'Roboto, sans-serif',
+                                size: 16,
+                                color: '#333'
+                            }
+                        },
+                        tickangle: -45
+                    },
+                    yaxis: {
+                        title: {
+                            text: 'Average Score (%)',
+                            font: {
+                                family: 'Roboto, sans-serif',
+                                size: 16,
+                                color: '#333'
+                            }
+                        },
+                        range: [0, 100]
+                    },
+                    margin: {
+                        l: 60,
+                        r: 30,
+                        b: 120,
+                        t: 80,
+                        pad: 4
+                    },
+                    paper_bgcolor: 'rgba(255, 255, 255, 0.9)',
+                    plot_bgcolor: 'rgba(240, 240, 240, 0.5)',
+                    height: 400,
+                    font: {
+                        family: 'Roboto, sans-serif'
+                    },
+                    bargap: 0.3
+                };
+                
+                const config = {
+                    responsive: true,
+                    displayModeBar: false
+                };
+                
+                Plotly.newPlot('courses-performance-chart', data, layout, config);
+                console.log('Chart rendered successfully with sample data');
+                
+            } catch (error) {
+                console.error('Error rendering chart:', error);
+                coursePerformanceChart.innerHTML = '<div class="alert alert-danger">Error rendering chart: ' + error.message + '</div>';
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,5 @@
+﻿student_id,assessment_name,score,max_score,date,course_id,student_email
+1,Midterm Exam,85,100,12/05/2025,DS301,innocent.mugaya@gmail.com
+2,Midterm Exam,78,100,15/05/2025,DS301,paul.kintu@gmail.com
+3,Midterm Exam,92,100,18/05/2025,DS301,richard.wambede@gmail.com
+4,Midterm Exam,65,100,21/05/2025,DS301,oscar.muteb@gmail.com

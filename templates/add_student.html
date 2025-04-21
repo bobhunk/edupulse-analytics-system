@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Student - EduPulse{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-title">
+                <h1>Add New Student</h1>
+                <p class="text-muted">Create a new student account in the system</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Student Information</h5>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" action="{{ url_for('add_student') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                            <div class="form-text">Enter the student's full name (First and Last name)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                            <div class="form-text">This will be used as the student's login username</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="program" class="form-label">Program</label>
+                            <select class="form-select" id="program" name="program" required>
+                                <option value="" selected disabled>Select a program</option>
+                                <option value="Bachelor's">Bachelor's</option>
+                                <option value="Master's">Master's</option>
+                                <option value="PhD">PhD</option>
+                                <option value="Diploma">Diploma</option>
+                                <option value="Certificate">Certificate</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="course" class="form-label">Course</label>
+                            <select class="form-select" id="course" name="course" required>
+                                <option value="" selected disabled>Select a course</option>
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Data Science and Analytics">Data Science and Analytics</option>
+                                <option value="Engineering">Engineering</option>
+                                <option value="Business">Business</option>
+                                <option value="Arts">Arts</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Enrolled Course Units</label>
+                            <div class="course-checkboxes">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="courses" value="1" id="course1">
+                                    <label class="form-check-label" for="course1">
+                                        CS101 - Object Oriented Programming
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="courses" value="2" id="course2">
+                                    <label class="form-check-label" for="course2">
+                                        CS201 - Research Methods and Publications
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="courses" value="3" id="course3">
+                                    <label class="form-check-label" for="course3">
+                                        DS301 - Data Science Life Cycle
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="courses" value="5" id="course5">
+                                    <label class="form-check-label" for="course5">
+                                        CS404 - Advanced Christian Ethics
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-text">Select the courses this student should be enrolled in</div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">Add Student</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

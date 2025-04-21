@@ -1,0 +1,466 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Dashboard - {{ session.name }} - EduPulse{% endblock %}
+
+{% block sidebar_menu %}
+<ul class="sidebar-menu">
+    <li class="menu-item {% if request.path == '/' or request.endpoint == 'student_dashboard' or request.endpoint == 'lecturer_dashboard' %}active{% endif %}">
+        <a href="/">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+    </li>
+    {% if session.get('user_type') == 'student' or session.get('user_type') == 'lecturer' %}
+    <li class="menu-item {% if 'messages' in request.path %}active{% endif %}">
+        <a href="{{ url_for('view_messages') }}">
+            <i class="fas fa-envelope"></i>
+            <span>Messages</span>
+            {% if unread_count and unread_count > 0 %}
+                <span class="badge bg-danger rounded-pill ms-2">{{ unread_count }}</span>
+            {% endif %}
+        </a>
+    </li>
+    {% endif %}
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1 class="mb-4">Student Dashboard: {{ session.name }}</h1>
+    </div>
+</div>
+
+<!-- Privacy Notice Alert -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-shield-alt me-3 fs-4"></i>
+                <div>
+                    <strong>{{ privacy_notice.title }}</strong>
+                    <p class="mb-0">{{ privacy_notice.message }}</p>
+                    <small class="text-muted">Last updated: {{ privacy_notice.last_updated }}</small>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Student Information Card -->
+    <div class="col-md-4">
+        <div class="card dashboard-card shadow">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-user-graduate me-2"></i> Student Information
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    <div class="avatar-circle mx-auto mb-2">
+                        <span class="initials">{{ session.name|truncate(2, True, '') }}</span>
+                    </div>
+                    <h5 class="card-title">{{ session.name }}</h5>
+                </div>
+                
+                <div class="student-info">
+                    <p class="card-text"><i class="fas fa-envelope me-2"></i><strong>Email:</strong> {{ student.email }}</p>
+                    <p class="card-text"><i class="fas fa-graduation-cap me-2"></i><strong>Program:</strong> {{ student.program }}</p>
+                    <p class="card-text"><i class="fas fa-calendar-alt me-2"></i><strong>Enrollment Date:</strong> {{ student.enrollment_date }}</p>
+                </div>
+                
+                <hr>
+                
+                <h6 class="mb-3"><i class="fas fa-chart-pie me-2"></i>Performance Summary</h6>
+                <div class="performance-summary">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Average Score:</span>
+                        <div class="d-flex align-items-center">
+                            <div class="status-indicator me-2
+                                {% if avg_score >= 80 %}status-green
+                                {% elif avg_score >= 60 %}status-amber
+                                {% else %}status-red{% endif %}">
+                            </div>
+                            <strong>{{ "%.1f"|format(avg_score) }}%</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>Attendance Rate:</span>
+                        <div class="d-flex align-items-center">
+                            <div class="status-indicator me-2
+                                {% if avg_attendance >= 90 %}status-green
+                                {% elif avg_attendance >= 80 %}status-amber
+                                {% else %}status-red{% endif %}">
+                            </div>
+                            <strong>{{ "%.1f"|format(avg_attendance) }}%</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Overall Status:</span>
+                        <div>
+                            {% if avg_score >= 70 and avg_attendance >= 75 %}
+                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Good Standing</span>
+                            {% elif avg_score < 55 and avg_attendance < 65 %}
+                                <span class="badge bg-danger"><i class="fas fa-exclamation-circle me-1"></i>At Risk</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle me-1"></i>Needs Improvement</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Performance Trend Chart -->
+    <div class="col-md-8">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Your Personal Performance Trend</h5>
+                    <span class="badge bg-light text-primary">Private to You</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Simple table to display performance data clearly -->
+                <table class="table table-striped table-bordered table-hover">
+                    <thead class="bg-light text-dark">
+                        <tr>
+                            <th>Course Code</th>
+                            <th>Course Title</th>
+                            <th>Lecturer</th>
+                            <th>Performance (%)</th>
+                            <th>Grade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in courses %}
+                        <tr class="{% if course.progress >= 80 %}table-success{% elif course.progress >= 70 %}table-info{% elif course.progress >= 60 %}table-warning{% else %}table-danger{% endif %}">
+                            <td><strong>{{ course.course_code }}</strong></td>
+                            <td>{{ course.title }}</td>
+                            <td>{{ course.lecturer_name }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-2" style="height: 10px;">
+                                        <div class="progress-bar {% if course.progress >= 80 %}bg-success{% elif course.progress >= 70 %}bg-info{% elif course.progress >= 60 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {{ course.progress }}%" 
+                                             aria-valuenow="{{ course.progress }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <span class="fw-bold">{{ course.progress }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                {% if course.progress >= 90 %}
+                                    <span class="badge bg-success">A</span>
+                                {% elif course.progress >= 80 %}
+                                    <span class="badge bg-primary">B+</span>
+                                {% elif course.progress >= 70 %}
+                                    <span class="badge bg-info">B</span>
+                                {% elif course.progress >= 60 %}
+                                    <span class="badge bg-warning">C</span>
+                                {% else %}
+                                    <span class="badge bg-danger">D</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <!-- Simple bar chart visualization -->
+                <div class="mt-4">
+                    <div class="row">
+                        {% for course in courses %}
+                        <div class="col-md-3 mb-3 text-center">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <strong>{{ course.course_code }}</strong>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="card-subtitle mb-2 text-muted">
+                                        {{ course.title }}
+                                    </h6>
+                                    <p class="card-text">
+                                        <small>
+                                            {{ course.lecturer_name }}
+                                        </small>
+                                    </p>
+                                    <div class="progress" style="height: 150px; border-radius: 0;">
+                                        <div class="progress-bar 
+                                            {% if course.progress >= 90 %}
+                                                bg-success
+                                            {% elif course.progress >= 80 %}
+                                                bg-primary
+                                            {% elif course.progress >= 70 %}
+                                                bg-info
+                                            {% elif course.progress >= 60 %}
+                                                bg-warning
+                                            {% else %}
+                                                bg-danger
+                                            {% endif %}"
+                                             role="progressbar" 
+                                             style="width: {{ course.progress }}%" 
+                                             aria-valuenow="{{ course.progress }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <strong>{{ course.progress }}%</strong>
+                                    {% if course.progress >= 90 %}
+                                        <span class="badge bg-success">A</span>
+                                    {% elif course.progress >= 80 %}
+                                        <span class="badge bg-primary">B+</span>
+                                    {% elif course.progress >= 70 %}
+                                        <span class="badge bg-info">B</span>
+                                    {% elif course.progress >= 60 %}
+                                        <span class="badge bg-warning">C</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">D</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Attendance Summary -->
+    <div class="col-md-6">
+        <div class="card dashboard-card shadow">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-calendar-check me-2"></i> Attendance Summary
+            </div>
+            <div class="card-body">
+                <!-- Enhanced attendance summary -->
+                <div class="attendance-text-summary">
+                    <h5 class="text-center mb-4">Attendance Overview</h5>
+                    
+                    <!-- Circular attendance visualization -->
+                    <div class="attendance-circle-container text-center mb-4">
+                        <div class="attendance-circle mx-auto position-relative" style="width: 180px; height: 180px;">
+                            <div class="attendance-circle-bg rounded-circle d-flex align-items-center justify-content-center" 
+                                 style="width: 100%; height: 100%; background: conic-gradient(#28a745 0% {{ avg_attendance }}%, #f8f9fa {{ avg_attendance }}% 100%);">
+                                <div class="attendance-circle-inner rounded-circle bg-white d-flex flex-column align-items-center justify-content-center"
+                                     style="width: 75%; height: 75%;">
+                                    <h3 class="mb-0 fw-bold">{{ "%.1f"|format(avg_attendance) }}%</h3>
+                                    <small class="text-muted">Attendance Rate</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Attendance stats cards -->
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="attendance-stat-card bg-success-subtle p-3 rounded shadow-sm mb-3">
+                                <div class="d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-user-check text-success me-2 fs-4"></i>
+                                    <h2 class="text-success mb-0">{{ "%.1f"|format(avg_attendance) }}%</h2>
+                                </div>
+                                <p class="mb-0 text-success mt-2">Present</p>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="attendance-stat-card bg-danger-subtle p-3 rounded shadow-sm mb-3">
+                                <div class="d-flex align-items-center justify-content-center">
+                                    <i class="fas fa-user-times text-danger me-2 fs-4"></i>
+                                    <h2 class="text-danger mb-0">{{ "%.1f"|format(100 - avg_attendance) }}%</h2>
+                                </div>
+                                <p class="mb-0 text-danger mt-2">Absent</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Attendance status message -->
+                    <div class="text-center mt-3">
+                        <div class="attendance-status-message p-2 rounded
+                            {% if avg_attendance >= 90 %}bg-success-subtle text-success
+                            {% elif avg_attendance >= 75 %}bg-info-subtle text-info
+                            {% else %}bg-warning-subtle text-warning{% endif %}">
+                            <i class="fas 
+                                {% if avg_attendance >= 90 %}fa-medal
+                                {% elif avg_attendance >= 75 %}fa-thumbs-up
+                                {% else %}fa-exclamation-triangle{% endif %} me-2"></i>
+                            {% if avg_attendance >= 90 %}Excellent attendance! Keep it up.
+                            {% elif avg_attendance >= 75 %}Good attendance. Try to improve further.
+                            {% else %}Your attendance needs improvement.{% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Attendance Patterns -->
+    <div class="col-md-6">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                Attendance Patterns
+            </div>
+            <div class="card-body">
+                <!-- Text-based attendance patterns -->
+                <div class="attendance-patterns-text">
+                    <h5 class="text-center mb-4">Weekly Attendance</h5>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Week</th>
+                                <th>Mon</th>
+                                <th>Tue</th>
+                                <th>Wed</th>
+                                <th>Thu</th>
+                                <th>Fri</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for week_idx in range(8) %}
+                            <tr>
+                                <td>Week {{ week_idx + 1 }}</td>
+                                {% for day_idx in range(5) %}
+                                    {% if visualizations.get('attendance_heatmap') and visualizations.attendance_heatmap.get('data') and week_idx < visualizations.attendance_heatmap.data|length and day_idx < visualizations.attendance_heatmap.data[week_idx]|length %}
+                                        {% set attendance = visualizations.attendance_heatmap.data[week_idx][day_idx] %}
+                                    {% else %}
+                                        {% set attendance = -1 %}
+                                    {% endif %}
+                                    <td class="text-center {% if attendance == 1 %}bg-success text-white{% elif attendance == 0 %}bg-danger text-white{% else %}bg-light{% endif %}">
+                                        {% if attendance == 1 %}
+                                            <i class="fas fa-check"></i>
+                                        {% elif attendance == 0 %}
+                                            <i class="fas fa-times"></i>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="text-center mt-3">
+                        <span class="badge bg-success">Present</span>
+                        <span class="badge bg-danger">Absent</span>
+                        <span class="badge bg-light text-dark">No Class</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Enrolled Courses -->
+    <div class="col-md-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                Enrolled Courses
+            </div>
+            <div class="card-body">
+                <table class="table data-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Title</th>
+                            <th>Lecturer</th>
+                            <th>Progress</th>
+                            <th>Grade</th>
+                            <th>View</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in courses %}
+                        <tr>
+                            <td>{{ course.course_code }}</td>
+                            <td>{{ course.title }}</td>
+                            <td>{{ course.lecturer_name }}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    {% if course.progress >= 70 %}
+                                        <div class="progress-bar bg-success" role="progressbar" 
+                                             style="width: {{ course.progress }}%" 
+                                             aria-valuenow="{{ course.progress }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ course.progress }}%
+                                        </div>
+                                    {% elif course.progress >= 50 %}
+                                        <div class="progress-bar bg-warning" role="progressbar" 
+                                             style="width: {{ course.progress }}%" 
+                                             aria-valuenow="{{ course.progress }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ course.progress }}%
+                                        </div>
+                                    {% else %}
+                                        <div class="progress-bar bg-danger" role="progressbar" 
+                                             style="width: {{ course.progress }}%" 
+                                             aria-valuenow="{{ course.progress }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            {{ course.progress }}%
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>{{ course.grade }}</td>
+                            <td>
+                                <a href="{{ url_for('student_marks', course_id=course.id) }}" class="btn btn-sm btn-primary">View Marks</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Attendance Chart
+        const attendanceData = {
+            labels: ['Present', 'Absent', 'No Class'],
+            datasets: [{
+                data: [85, 10, 5],
+                backgroundColor: ['#28a745', '#dc3545', '#f8f9fa']
+            }]
+        };
+        const attendanceTrace = {
+            x: attendanceData.labels,
+            y: attendanceData.datasets[0].data,
+            type: 'pie',
+            name: 'Attendance',
+            marker: {
+                color: attendanceData.datasets[0].backgroundColor
+            }
+        };
+        
+        const attendanceLayout = {
+            title: 'Attendance Summary',
+            margin: {
+                l: 50,
+                r: 50,
+                b: 50,
+                t: 50,
+                pad: 4
+            }
+        };
+        
+        Plotly.newPlot('attendance-chart', [attendanceTrace], attendanceLayout);
+    });
+</script>
+{% endblock %}

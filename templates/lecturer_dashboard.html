@@ -1,0 +1,590 @@
+{% extends 'base.html' %}
+
+{% block title %}lecturer Dashboard - {{ lecturer.name }} - EduPulse{% endblock %}
+
+{% block sidebar_menu %}
+<ul class="sidebar-menu">
+    <li class="menu-item {% if request.path == '/' or request.endpoint == 'student_dashboard' or request.endpoint == 'lecturer_dashboard' %}active{% endif %}">
+        <a href="/">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+    </li>
+    {% if session.get('user_type') == 'student' or session.get('user_type') == 'lecturer' %}
+    <li class="menu-item {% if 'messages' in request.path %}active{% endif %}">
+        <a href="{{ url_for('view_messages') }}">
+            <i class="fas fa-envelope"></i>
+            <span>Messages</span>
+            {% if unread_count and unread_count > 0 %}
+                <span class="badge bg-danger rounded-pill ms-2">{{ unread_count }}</span>
+            {% endif %}
+        </a>
+    </li>
+    {% endif %}
+    {% if session.get('user_type') == 'lecturer' %}
+    <li class="menu-item {% if 'analytics' in request.path %}active{% endif %}">
+        <a href="/analytics">
+            <i class="fas fa-chart-line"></i>
+            <span>Analytics</span>
+        </a>
+    </li>
+    {% endif %}
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1 class="mb-4">Lecturer Dashboard: {{ lecturer.name }}</h1>
+    </div>
+</div>
+
+<!-- Data Access Notice -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-primary alert-dismissible fade show" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-user-shield me-3 fs-4"></i>
+                <div>
+                    <strong>Lecturer Data Access</strong>
+                    <p class="mb-0">As a lecturer, you have access to aggregate performance data for all students in your courses. Please use this information responsibly and in accordance with educational privacy guidelines.</p>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12 text-end">
+        <a href="{{ url_for('upload_marks') }}" class="btn btn-primary me-2">
+            <i class="fas fa-upload"></i> Upload Student Marks
+        </a>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#generateReportModal">
+            <i class="fas fa-file-alt"></i> Generate Student Reports
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <!-- lecturer Information Card -->
+    <div class="col-md-4">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                lecturer Information
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">{{ lecturer.name }}</h5>
+                <p class="card-text"><strong>Email:</strong> {{ lecturer.email }}</p>
+                <p class="card-text"><strong>Department:</strong> {{ lecturer.department }}</p>
+                
+                <hr>
+                
+                <h6>Teaching Summary</h6>
+                <p><strong>Courses:</strong> {{ courses|length }}</p>
+                <p><strong>Total Students:</strong> {{ total_students }}</p>
+                <p>
+                    <strong>At-Risk Students:</strong> 
+                    <span class="badge bg-danger">{{ at_risk_count }}</span>
+                    <span class="text-muted">({{ at_risk_percentage }}%)</span>
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Course Performance Overview -->
+    <div class="col-md-8">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Course Performance Overview</h5>
+                    <span class="badge bg-light text-primary">Aggregate Data</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="courses-performance-chart" class="chart-container" 
+                     data-chart-type="bar_chart" 
+                     data-chart-data="{{ visualizations.course_performance|tojson }}">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- Courses List -->
+    <div class="col-md-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Your Courses</h5>
+            </div>
+            <div class="card-body p-4">
+                {% if courses %}
+                <table class="table data-table">
+                    <thead>
+                        <tr>
+                            <th>Course Code</th>
+                            <th>Title</th>
+                            <th>Semester</th>
+                            <th>Year</th>
+                            <th>Performance</th>
+                            <th>Students</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in courses %}
+                        <tr>
+                            <td><strong>{{ course.course_code }}</strong></td>
+                            <td>{{ course.title }}</td>
+                            <td>{{ course.semester }}</td>
+                            <td>{{ course.year }}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    {% set performance_values = visualizations.course_performance.values %}
+                                    {% set performance = performance_values[loop.index0] if performance_values is sequence else 75.0 %}
+                                    <div class="progress-bar {% if performance >= 80 %}bg-success{% elif performance >= 70 %}bg-info{% elif performance >= 60 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                         role="progressbar" 
+                                         style="width: {{ performance }}%" 
+                                         aria-valuenow="{{ performance }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        {{ "%.1f"|format(performance) }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('course_detail', course_id=course.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-users"></i> View Students
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> You are not assigned to any courses yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- At-Risk Students -->
+    <div class="col-md-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-danger text-white">
+                At-Risk Students
+            </div>
+            <div class="card-body p-4">
+                {% if at_risk_students %}
+                <table class="table data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Course</th>
+                            <th>Grade</th>
+                            <th>Attendance</th>
+                            <th>Risk Factors</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in at_risk_students %}
+                        <tr>
+                            <td>{{ student.name }}</td>
+                            <td>{{ student.email }}</td>
+                            <td>
+                                <span class="badge bg-primary px-3 py-2">{{ student.course_code }} - {{ student.course_title }}</span>
+                            </td>
+                            <td>
+                                {% if student.performance is defined %}
+                                <span class="badge {% if student.performance < 50 %}bg-danger{% elif student.performance < 70 %}bg-warning{% else %}bg-success{% endif %}" style="font-size: 16px; padding: 8px 12px;">
+                                    {{ student.grade }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary" style="font-size: 16px; padding: 8px 12px;">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if student.attendance_rate is defined %}
+                                <span class="badge {% if student.attendance_rate < 70 %}bg-danger{% elif student.attendance_rate < 80 %}bg-warning{% else %}bg-success{% endif %}" style="font-size: 16px; padding: 8px 12px;">
+                                    {{ "%.1f"|format(student.attendance_rate) }}%
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary" style="font-size: 16px; padding: 8px 12px;">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% for factor in student.risk_factors %}
+                                    <span class="badge bg-danger mb-1 d-block">{{ factor }}</span>
+                                {% endfor %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('student_detail', student_id=student.id) }}?ref=lecturer&course={{ student.course_code }}" class="btn btn-sm btn-primary mb-1">View Marks</a>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#contactModal" data-student-id="{{ student.id }}" data-student-name="{{ student.name }}">Contact</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i> No at-risk students in your courses!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contact Student Modal -->
+<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contactModalLabel">Contact Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="contact-form" action="{{ url_for('send_message') }}" method="POST">
+                    <input type="hidden" id="student-id-input" name="recipient_id">
+                    <input type="hidden" name="recipient_type" value="student">
+                    <input type="hidden" name="course_id" value="{{ courses[0].id if courses else '' }}">
+                    <div class="mb-3">
+                        <label for="student-name" class="form-label">Student</label>
+                        <input type="text" class="form-control" id="student-name" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message-subject" class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="message-subject" name="subject" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="message-text" class="form-label">Message</label>
+                        <textarea class="form-control" id="message-text" name="message" rows="5" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="advice-template" class="form-label">Quick Advice Templates</label>
+                        <select class="form-select" id="advice-template">
+                            <option value="">Select a template...</option>
+                            <option value="attendance">Attendance Improvement</option>
+                            <option value="performance">Academic Performance</option>
+                            <option value="support">Support Resources</option>
+                            <option value="meeting">Schedule Meeting</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="submit" form="contact-form" class="btn btn-primary">Send Message</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Generate Report Modal -->
+<div class="modal fade" id="generateReportModal" tabindex="-1" aria-labelledby="generateReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="generateReportModalLabel">Generate Reports</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="card-title mb-0">Student Reports</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">Generate detailed performance reports for individual students.</p>
+                                <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#studentReportModal">
+                                        <i class="fas fa-user-graduate"></i> Select Student
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-info text-white">
+                                <h5 class="card-title mb-0">Course Reports</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">Generate performance reports for entire courses.</p>
+                                <div class="d-grid gap-2">
+                                    <button type="button" class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#courseReportModal">
+                                        <i class="fas fa-book"></i> Select Course
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-danger text-white">
+                                <h5 class="card-title mb-0">At-Risk Reports</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text">Generate reports for students who need additional support.</p>
+                                <div class="d-grid gap-2">
+                                    <a href="/generate_at_risk_report/pdf" class="btn btn-outline-danger mb-2">
+                                        <i class="fas fa-file-pdf"></i> Download PDF
+                                    </a>
+                                    <a href="/generate_at_risk_report/excel" class="btn btn-outline-success">
+                                        <i class="fas fa-file-excel"></i> Download Excel
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Student Report Modal -->
+<div class="modal fade" id="studentReportModal" tabindex="-1" aria-labelledby="studentReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="studentReportModalLabel">Generate Student Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="studentReportForm">
+                    <div class="mb-3">
+                        <label for="studentSelect" class="form-label">Select Student</label>
+                        <select class="form-select" id="studentSelect" required>
+                            <option value="" selected disabled>Choose a student...</option>
+                            {% for student in all_students %}
+                            <option value="{{ student.id }}">{{ student.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Report Format</label>
+                        <div class="d-grid gap-2" id="studentReportButtons" style="display: none;">
+                            <a href="#" id="studentPdfLink" class="btn btn-outline-danger mb-2">
+                                <i class="fas fa-file-pdf"></i> Download PDF
+                            </a>
+                            <a href="#" id="studentExcelLink" class="btn btn-outline-success">
+                                <i class="fas fa-file-excel"></i> Download Excel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Course Report Modal -->
+<div class="modal fade" id="courseReportModal" tabindex="-1" aria-labelledby="courseReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="courseReportModalLabel">Generate Course Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="courseReportForm">
+                    <div class="mb-3">
+                        <label for="courseSelect" class="form-label">Select Course</label>
+                        <select class="form-select" id="courseSelect" required>
+                            <option value="" selected disabled>Choose a course...</option>
+                            {% for course in courses %}
+                            <option value="{{ course.id }}">{{ course.code }}: {{ course.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Report Format</label>
+                        <div class="d-grid gap-2" id="courseReportButtons" style="display: none;">
+                            <a href="#" id="coursePdfLink" class="btn btn-outline-danger mb-2">
+                                <i class="fas fa-file-pdf"></i> Download PDF
+                            </a>
+                            <a href="#" id="courseExcelLink" class="btn btn-outline-success">
+                                <i class="fas fa-file-excel"></i> Download Excel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Course Performance Chart
+        const coursePerformanceData = {{ visualizations.course_performance|tojson }};
+        const coursePerformanceTrace = {
+            x: coursePerformanceData.labels,
+            y: coursePerformanceData.values,
+            type: 'bar',
+            name: 'Average Performance',
+            marker: {
+                color: 'rgba(153, 102, 255, 0.7)'
+            },
+            textposition: 'auto',
+            text: coursePerformanceData.values.map(val => val.toFixed(1) + '%')
+        };
+        
+        const coursePerformanceLayout = {
+            title: {
+                text: 'Course Performance Overview',
+                font: {
+                    size: 18,
+                    color: '#333'
+                }
+            },
+            xaxis: {
+                title: {
+                    text: 'Course',
+                    font: {
+                        size: 14,
+                        color: '#555'
+                    }
+                }
+            },
+            yaxis: {
+                title: {
+                    text: 'Average Score (%)',
+                    font: {
+                        size: 14,
+                        color: '#555'
+                    }
+                },
+                range: [0, 100]
+            },
+            margin: {
+                l: 60,
+                r: 30,
+                b: 80,
+                t: 60,
+                pad: 4
+            },
+            height: 400,
+            autosize: true,
+            plot_bgcolor: '#f8f9fa',
+            paper_bgcolor: '#f8f9fa',
+            bargap: 0.3
+        };
+        
+        const config = {
+            responsive: true,
+            displayModeBar: false
+        };
+        
+        Plotly.newPlot('courses-performance-chart', [coursePerformanceTrace], coursePerformanceLayout, config);
+    
+        // Handle contact modal
+        const contactModal = document.getElementById('contactModal');
+        if (contactModal) {
+            contactModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const studentId = button.getAttribute('data-student-id');
+                const studentName = button.getAttribute('data-student-name');
+                
+                const studentIdInput = document.getElementById('student-id-input');
+                const studentNameInput = document.getElementById('student-name');
+                
+                studentIdInput.value = studentId;
+                studentNameInput.value = studentName;
+                
+                // Reset form fields when opening the modal
+                document.getElementById('message-subject').value = '';
+                document.getElementById('message-text').value = '';
+                document.getElementById('advice-template').value = '';
+            });
+        }
+        
+        // Handle advice templates
+        const adviceTemplate = document.getElementById('advice-template');
+        const messageSubject = document.getElementById('message-subject');
+        const messageText = document.getElementById('message-text');
+        
+        if (adviceTemplate) {
+            adviceTemplate.addEventListener('change', function() {
+                const templateValue = this.value;
+                
+                if (templateValue === 'attendance') {
+                    messageSubject.value = 'Improving Your Course Attendance';
+                    messageText.value = 'Dear Student,\n\nI noticed your attendance in my course has been below the expected level. Regular attendance is crucial for your academic success and understanding of the course material.\n\nI would like to discuss any challenges you might be facing and explore ways to help you improve your attendance. Please let me know a convenient time to meet.\n\nBest regards,\n' + '{{ lecturer.name }}';
+                } 
+                else if (templateValue === 'performance') {
+                    messageSubject.value = 'Academic Performance Concerns';
+                    messageText.value = 'Dear Student,\n\nI am reaching out because I am concerned about your recent academic performance in my course. Your success is important to me, and I believe you have the potential to improve.\n\nI would like to discuss specific strategies that could help you better understand the course material and improve your grades. Please feel free to visit me during office hours or schedule a separate meeting.\n\nBest regards,\n' + '{{ lecturer.name }}';
+                }
+                else if (templateValue === 'support') {
+                    messageSubject.value = 'Available Support Resources';
+                    messageText.value = 'Dear Student,\n\nI wanted to make sure you are aware of the various support resources available to help you succeed in your studies:\n\n1. Academic Support Center - Offers tutoring and study skills workshops\n2. Counseling Services - Provides support for personal challenges\n3. Library Resources - Research assistance and study spaces\n4. Office Hours - I am available during my scheduled office hours\n\nPlease don\'t hesitate to use these resources. I\'m here to support your academic journey.\n\nBest regards,\n' + '{{ lecturer.name }}';
+                }
+                else if (templateValue === 'meeting') {
+                    messageSubject.value = 'Request for Academic Advising Meeting';
+                    messageText.value = 'Dear Student,\n\nI would like to schedule a brief meeting with you to discuss your progress in my course and provide some academic advising.\n\nPlease let me know your availability in the next week, or you can visit me during my office hours on [specify your office hours here].\n\nLooking forward to our conversation.\n\nBest regards,\n' + '{{ lecturer.name }}';
+                }
+            });
+        }
+        
+        // Handle student report selection
+        const studentSelect = document.getElementById('studentSelect');
+        const studentReportButtons = document.getElementById('studentReportButtons');
+        const studentPdfLink = document.getElementById('studentPdfLink');
+        const studentExcelLink = document.getElementById('studentExcelLink');
+        
+        if (studentSelect) {
+            studentSelect.addEventListener('change', function() {
+                const studentId = this.value;
+                if (studentId) {
+                    studentReportButtons.style.display = 'block';
+                    studentPdfLink.href = `/generate_student_report/${studentId}/pdf`;
+                    studentExcelLink.href = `/generate_student_report/${studentId}/excel`;
+                } else {
+                    studentReportButtons.style.display = 'none';
+                }
+            });
+        }
+        
+        // Handle course report selection
+        const courseSelect = document.getElementById('courseSelect');
+        const courseReportButtons = document.getElementById('courseReportButtons');
+        const coursePdfLink = document.getElementById('coursePdfLink');
+        const courseExcelLink = document.getElementById('courseExcelLink');
+        
+        if (courseSelect) {
+            courseSelect.addEventListener('change', function() {
+                const courseId = this.value;
+                if (courseId) {
+                    courseReportButtons.style.display = 'block';
+                    coursePdfLink.href = `/generate_course_report/${courseId}/pdf`;
+                    courseExcelLink.href = `/generate_course_report/${courseId}/excel`;
+                } else {
+                    courseReportButtons.style.display = 'none';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}

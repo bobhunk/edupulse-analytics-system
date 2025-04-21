@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+
+{% block title %}View Marks - {{ course.course_code }}: {{ course.title }} - EduPulse{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="page-title">{{ course.course_code }}: {{ course.title }} - Marks</h1>
+                <div>
+                    <a href="{{ url_for('course_detail', course_id=course.id) }}" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-arrow-left me-2"></i> Back to Course
+                    </a>
+                    <a href="{{ url_for('upload_marks') }}?course={{ course.course_code }}" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i> Upload More Marks
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="card gradient-card">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Student Marks Summary</h5>
+                </div>
+                <div class="card-body">
+                    {% if students_marks %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Average Score</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students_marks %}
+                                <tr>
+                                    <td>{{ student.name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-{{ 'danger' if student.average_percentage < 60 else 'warning' if student.average_percentage < 75 else 'success' }}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ student.average_percentage }}%;" 
+                                                     aria-valuenow="{{ student.average_percentage }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100"></div>
+                                            </div>
+                                            <span>{{ "%.1f"|format(student.average_percentage) }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if student.at_risk %}
+                                        <span class="badge bg-danger">At Risk</span>
+                                        {% else %}
+                                        <span class="badge bg-success">Good Standing</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#details-{{ loop.index }}">
+                                            View Details
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr class="collapse" id="details-{{ loop.index }}">
+                                    <td colspan="5" class="p-0">
+                                        <div class="p-3 bg-light">
+                                            <h6 class="mb-3">Assessment Details</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Assessment</th>
+                                                            <th>Type</th>
+                                                            <th>Score</th>
+                                                            <th>Max Points</th>
+                                                            <th>Percentage</th>
+                                                            <th>Date</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for assessment in student.assessments %}
+                                                        <tr>
+                                                            <td>{{ assessment.name }}</td>
+                                                            <td>
+                                                                <span class="badge bg-{{ 'primary' if assessment.type == 'quiz' else 'info' if assessment.type == 'assignment' else 'warning' if assessment.type == 'exam' else 'success' }}">
+                                                                    {{ assessment.type|capitalize }}
+                                                                </span>
+                                                            </td>
+                                                            <td>{{ assessment.score }}</td>
+                                                            <td>{{ assessment.max_points }}</td>
+                                                            <td>
+                                                                <div class="d-flex align-items-center">
+                                                                    <div class="progress flex-grow-1 me-2" style="height: 4px;">
+                                                                        <div class="progress-bar bg-{{ 'danger' if assessment.percentage < 60 else 'warning' if assessment.percentage < 75 else 'success' }}" 
+                                                                             role="progressbar" 
+                                                                             style="width: {{ assessment.percentage }}%;" 
+                                                                             aria-valuenow="{{ assessment.percentage }}" 
+                                                                             aria-valuemin="0" 
+                                                                             aria-valuemax="100"></div>
+                                                                    </div>
+                                                                    <span>{{ "%.1f"|format(assessment.percentage) }}%</span>
+                                                                </div>
+                                                            </td>
+                                                            <td>{{ assessment.submission_date }}</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No marks have been uploaded for this course yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card gradient-card">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">At-Risk Students</h5>
+                </div>
+                <div class="card-body">
+                    {% if at_risk_students %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Average Score</th>
+                                    <th>Risk Factors</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in at_risk_students %}
+                                <tr>
+                                    <td>{{ student.name }}</td>
+                                    <td>{{ student.email }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-danger" 
+                                                     role="progressbar" 
+                                                     style="width: {{ student.average_percentage }}%;" 
+                                                     aria-valuenow="{{ student.average_percentage }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100"></div>
+                                            </div>
+                                            <span>{{ "%.1f"|format(student.average_percentage) }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger mb-1 d-block">LOW PERFORMANCE</span>
+                                        {% if student.average_percentage < 60 %}
+                                        <span class="badge bg-danger mb-1 d-block">FAILING GRADE</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#contactModal" data-student-email="{{ student.email }}" data-student-name="{{ student.name }}">
+                                            Contact Student
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i> No at-risk students based on the uploaded marks.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contact Modal -->
+<div class="modal fade" id="contactModal" tabindex="-1" aria-labelledby="contactModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="contactModalLabel">Contact Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label for="recipient" class="form-label">To:</label>
+                        <input type="email" class="form-control" id="recipient" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="subject" class="form-label">Subject:</label>
+                        <input type="text" class="form-control" id="subject" value="Regarding your performance in {{ course.course_code }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message:</label>
+                        <textarea class="form-control" id="message" rows="5">Dear Student,
+
+I am writing to express concern about your current performance in our {{ course.course_code }} class. Based on your recent assessments, you are currently at risk of not meeting the course requirements.
+
+I would like to schedule a meeting to discuss strategies to improve your performance and address any challenges you may be facing.
+
+Please let me know your availability for a meeting this week.
+
+Best regards,
+{{ user_name }}
+                        </textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary">Send Message</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var contactModal = document.getElementById('contactModal');
+        if (contactModal) {
+            contactModal.addEventListener('show.bs.modal', function(event) {
+                var button = event.relatedTarget;
+                var studentEmail = button.getAttribute('data-student-email');
+                var studentName = button.getAttribute('data-student-name');
+                
+                var recipientInput = contactModal.querySelector('#recipient');
+                if (recipientInput) {
+                    recipientInput.value = studentEmail;
+                }
+                
+                var messageTextarea = contactModal.querySelector('#message');
+                if (messageTextarea) {
+                    messageTextarea.value = messageTextarea.value.replace('Dear Student', 'Dear ' + studentName);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

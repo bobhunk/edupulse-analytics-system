@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Update Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Update Profile</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{ user.name }}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                        </div>
+                        
+                        {% if user_type == 'student' %}
+                        <div class="mb-3">
+                            <label for="program" class="form-label">Program</label>
+                            <input type="text" class="form-control" id="program" name="program" value="{{ user.program }}" required>
+                        </div>
+                        {% elif user_type == 'lecturer' %}
+                        <div class="mb-3">
+                            <label for="department" class="form-label">Department</label>
+                            <input type="text" class="form-control" id="department" name="department" value="{{ user.department }}" required>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Password fields removed to fix the SQLite error -->
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Update Profile</button>
+                            {% if user_type == 'student' %}
+                            <a href="{{ url_for('student_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                            {% elif user_type == 'lecturer' %}
+                            <a href="{{ url_for('lecturer_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                            {% else %}
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                            {% endif %}
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

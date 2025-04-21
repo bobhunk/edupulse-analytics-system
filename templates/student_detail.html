@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Details - {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Back button -->
+    <div class="mb-4">
+        {% if ref == 'course' and course_code %}
+            <a href="{{ url_for('course_detail', course_id=course_code) }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i> Back to Course
+            </a>
+        {% else %}
+            <a href="{{ url_for('lecturer_dashboard') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+            </a>
+        {% endif %}
+    </div>
+
+    <!-- Student Profile Card -->
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card gradient-card h-100">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Student Profile</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <div class="avatar-circle mb-3">
+                            <span class="initials">{{ student.name.split()[0][0] }}{{ student.name.split()[-1][0] }}</span>
+                        </div>
+                        <h4>{{ student.name }}</h4>
+                        <p class="text-muted">{{ student.email }}</p>
+                    </div>
+                    
+                    <div class="student-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Program:</span>
+                            <span class="detail-value">{{ student.program }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Overall Performance:</span>
+                            <div class="progress mt-1" style="height: 8px;">
+                                <div class="progress-bar bg-{{ 'danger' if overall_performance < 60 else 'warning' if overall_performance < 75 else 'success' }}" 
+                                     role="progressbar" 
+                                     style="width: {{ overall_performance }}%;" 
+                                     aria-valuenow="{{ overall_performance }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100"></div>
+                            </div>
+                            <span class="ms-2">{{ "%.1f"|format(overall_performance) }}%</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Overall Attendance:</span>
+                            <div class="progress mt-1" style="height: 8px;">
+                                <div class="progress-bar bg-{{ 'danger' if overall_attendance < 70 else 'warning' if overall_attendance < 85 else 'success' }}" 
+                                     role="progressbar" 
+                                     style="width: {{ overall_attendance }}%;" 
+                                     aria-valuenow="{{ overall_attendance }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100"></div>
+                            </div>
+                            <span class="ms-2">{{ "%.1f"|format(overall_attendance) }}%</span>
+                        </div>
+                        {% if is_at_risk %}
+                        <div class="alert alert-danger mt-3">
+                            <h6><i class="fas fa-exclamation-triangle me-2"></i> At-Risk Student</h6>
+                            <ul class="mb-0">
+                                {% for factor in risk_factors %}
+                                <li>{{ factor }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Courses Card -->
+        <div class="col-lg-8 mb-4">
+            <div class="card gradient-card h-100">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Enrolled Courses</h5>
+                </div>
+                <div class="card-body">
+                    {% if courses %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Course Code</th>
+                                    <th>Title</th>
+                                    <th>Performance</th>
+                                    <th>Attendance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for course_perf in course_performance %}
+                                <tr>
+                                    <td>{{ course_perf.course_code }}</td>
+                                    <td>
+                                        {% for course in courses %}
+                                            {% if course.course_code == course_perf.course_code %}
+                                                {{ course.title }}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-{{ 'danger' if course_perf.performance < 60 else 'warning' if course_perf.performance < 75 else 'success' }}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ course_perf.performance }}%;" 
+                                                     aria-valuenow="{{ course_perf.performance }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100"></div>
+                                            </div>
+                                            <span>{{ "%.1f"|format(course_perf.performance) }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                <div class="progress-bar bg-{{ 'danger' if course_perf.attendance_rate < 70 else 'warning' if course_perf.attendance_rate < 85 else 'success' }}" 
+                                                     role="progressbar" 
+                                                     style="width: {{ course_perf.attendance_rate }}%;" 
+                                                     aria-valuenow="{{ course_perf.attendance_rate }}" 
+                                                     aria-valuemin="0" 
+                                                     aria-valuemax="100"></div>
+                                            </div>
+                                            <span>{{ "%.1f"|format(course_perf.attendance_rate) }}%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> No courses found for this student.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assessment Marks Card -->
+    <div class="card gradient-card mb-4">
+        <div class="card-header gradient-header">
+            <h5 class="card-title mb-0">Assessment Marks</h5>
+        </div>
+        <div class="card-body">
+            {% if marks %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th>Assessment</th>
+                            <th>Type</th>
+                            <th>Score</th>
+                            <th>Max Points</th>
+                            <th>Percentage</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mark in marks %}
+                        <tr>
+                            <td>{{ mark.course_code }}</td>
+                            <td>{{ mark.assessment_name }}</td>
+                            <td><span class="badge bg-{{ 'primary' if mark.assessment_type == 'assignment' else 'info' if mark.assessment_type == 'quiz' else 'warning' }}">{{ mark.assessment_type }}</span></td>
+                            <td>{{ mark.score }}</td>
+                            <td>{{ mark.max_points }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                        {% set percentage = (mark.score / mark.max_points * 100) if mark.max_points > 0 else 0 %}
+                                        <div class="progress-bar bg-{{ 'danger' if percentage < 60 else 'warning' if percentage < 75 else 'success' }}" 
+                                             role="progressbar" 
+                                             style="width: {{ percentage }}%;" 
+                                             aria-valuenow="{{ percentage }}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100"></div>
+                                    </div>
+                                    <span>{{ "%.1f"|format(percentage) }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> No assessment marks recorded for this student.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Attendance Records Card -->
+    <div class="card gradient-card">
+        <div class="card-header gradient-header">
+            <h5 class="card-title mb-0">Attendance Records</h5>
+        </div>
+        <div class="card-body">
+            {% if attendance %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance %}
+                        <tr>
+                            <td>{{ record.course_code }}</td>
+                            <td>{{ record.date }}</td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if record.status == 'present' else 'danger' }}">
+                                    {{ record.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> No attendance records found for this student.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

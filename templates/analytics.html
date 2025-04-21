@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - EduPulse{% endblock %}
+
+{% block sidebar_menu %}
+<ul class="sidebar-menu">
+    <li class="menu-item">
+        <a href="/">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+        </a>
+    </li>
+    {% if session.get('user_type') == 'student' or session.get('user_type') == 'lecturer' %}
+    <li class="menu-item {% if 'messages' in request.path %}active{% endif %}">
+        <a href="{{ url_for('view_messages') }}">
+            <i class="fas fa-envelope"></i>
+            <span>Messages</span>
+            {% if unread_count and unread_count > 0 %}
+                <span class="badge bg-danger rounded-pill ms-2">{{ unread_count }}</span>
+            {% endif %}
+        </a>
+    </li>
+    {% endif %}
+    {% if session.get('user_type') == 'lecturer' %}
+    <li class="menu-item active">
+        <a href="/analytics">
+            <i class="fas fa-chart-line"></i>
+            <span>Analytics</span>
+        </a>
+    </li>
+    {% endif %}
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-title">
+                <h1>Educational Analytics</h1>
+                <p class="text-muted">Performance insights for courses taught by {{ lecturer.name }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card gradient-card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Courses</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="icon-box bg-success-light">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <h2 class="ms-3 mb-0">{{ courses|length }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card gradient-card">
+                <div class="card-body">
+                    <h5 class="card-title">Total Students</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="icon-box bg-primary-light">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <h2 class="ms-3 mb-0">{{ course_analytics|sum(attribute='student_count') }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card gradient-card">
+                <div class="card-body">
+                    <h5 class="card-title">Average Score</h5>
+                    <div class="d-flex align-items-center">
+                        <div class="icon-box bg-warning-light">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h2 class="ms-3 mb-0">
+                            {% if average_score > 0 %}
+                                {{ average_score|round(1) }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Performance Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Course Performance Metrics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Course Code</th>
+                                    <th>Course Title</th>
+                                    <th>Students</th>
+                                    <th>Average Score</th>
+                                    <th>Attendance Rate</th>
+                                    <th>Completion Rate</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if course_analytics and course_analytics|length > 0 %}
+                                    {% for course in course_analytics %}
+                                    <tr>
+                                        <td>{{ course.code }}</td>
+                                        <td>{{ course.title }}</td>
+                                        <td>{{ course.student_count }}</td>
+                                        <td>
+                                            <div class="progress" style="height: 10px;">
+                                                <div class="progress-bar {% if course.avg_score >= 70 %}bg-success{% elif course.avg_score >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                    role="progressbar" 
+                                                    style="width: {{ course.avg_score }}%;" 
+                                                    aria-valuenow="{{ course.avg_score }}" 
+                                                    aria-valuemin="0" 
+                                                    aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <span class="small">{{ course.avg_score|round(1) }}%</span>
+                                        </td>
+                                        <td>
+                                            <div class="progress" style="height: 10px;">
+                                                <div class="progress-bar {% if course.attendance_rate >= 80 %}bg-success{% elif course.attendance_rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                    role="progressbar" 
+                                                    style="width: {{ course.attendance_rate }}%;" 
+                                                    aria-valuenow="{{ course.attendance_rate }}" 
+                                                    aria-valuemin="0" 
+                                                    aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <span class="small">{{ course.attendance_rate|round(1) }}%</span>
+                                        </td>
+                                        <td>
+                                            <div class="progress" style="height: 10px;">
+                                                <div class="progress-bar {% if course.completion_rate >= 80 %}bg-success{% elif course.completion_rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                                    role="progressbar" 
+                                                    style="width: {{ course.completion_rate }}%;" 
+                                                    aria-valuenow="{{ course.completion_rate }}" 
+                                                    aria-valuemin="0" 
+                                                    aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                            <span class="small">{{ course.completion_rate|round(1) }}%</span>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('course_detail', course_id=course.id) }}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">
+                                            <div class="alert alert-info mb-0">
+                                                No courses found. You are not currently assigned to teach any courses.
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Trends -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Average Scores by Course</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="scoreChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header gradient-header">
+                    <h5 class="card-title mb-0">Attendance Rates by Course</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="attendanceChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if course_analytics and course_analytics|length > 0 %}
+        // Score Chart
+        const scoreCtx = document.getElementById('scoreChart').getContext('2d');
+        const scoreChart = new Chart(scoreCtx, {
+            type: 'bar',
+            data: {
+                labels: [{% for course in course_analytics %}'{{ course.code }}',{% endfor %}],
+                datasets: [{
+                    label: 'Average Score (%)',
+                    data: [{% for course in course_analytics %}{{ course.avg_score|round(1) }},{% endfor %}],
+                    backgroundColor: [
+                        {% for course in course_analytics %}
+                            {% if course.avg_score >= 70 %}'rgba(40, 167, 69, 0.7)'{% elif course.avg_score >= 50 %}'rgba(255, 193, 7, 0.7)'{% else %}'rgba(220, 53, 69, 0.7)'{% endif %},
+                        {% endfor %}
+                    ],
+                    borderColor: [
+                        {% for course in course_analytics %}
+                            {% if course.avg_score >= 70 %}'rgba(40, 167, 69, 1)'{% elif course.avg_score >= 50 %}'rgba(255, 193, 7, 1)'{% else %}'rgba(220, 53, 69, 1)'{% endif %},
+                        {% endfor %}
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+
+        // Attendance Chart
+        const attendanceCtx = document.getElementById('attendanceChart').getContext('2d');
+        const attendanceChart = new Chart(attendanceCtx, {
+            type: 'bar',
+            data: {
+                labels: [{% for course in course_analytics %}'{{ course.code }}',{% endfor %}],
+                datasets: [{
+                    label: 'Attendance Rate (%)',
+                    data: [{% for course in course_analytics %}{{ course.attendance_rate|round(1) }},{% endfor %}],
+                    backgroundColor: [
+                        {% for course in course_analytics %}
+                            {% if course.attendance_rate >= 80 %}'rgba(40, 167, 69, 0.7)'{% elif course.attendance_rate >= 60 %}'rgba(255, 193, 7, 0.7)'{% else %}'rgba(220, 53, 69, 0.7)'{% endif %},
+                        {% endfor %}
+                    ],
+                    borderColor: [
+                        {% for course in course_analytics %}
+                            {% if course.attendance_rate >= 80 %}'rgba(40, 167, 69, 1)'{% elif course.attendance_rate >= 60 %}'rgba(255, 193, 7, 1)'{% else %}'rgba(220, 53, 69, 1)'{% endif %},
+                        {% endfor %}
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+        {% endif %}
+    });
+</script>
+{% endblock %}
