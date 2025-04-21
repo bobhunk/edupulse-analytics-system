@@ -57,12 +57,12 @@ EduPulse is an educational analytics dashboard designed to help higher education
   - Python 3.9+
   - Flask web framework
   - SQLite database
-  - Pandas for data processing
+  - Pandas an Numpy for data processing and analysis
   
 - **Frontend**
-  - Bootstrap 5 for responsive design
-  - Font Awesome icons
-  - Custom CSS
+  - Frontend: HTML5, CSS3,JavaScript,Bootstrap 5 for responsive design
+  - Visualization: Plotly for interactive charts and visualizations
+
 
 ## Project Structure
 ```
