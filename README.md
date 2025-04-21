@@ -4,6 +4,34 @@
 EduPulse is an educational analytics dashboard designed to help higher education institutions effectively utilize student data for improving performance and retention. This project demonstrates object-oriented programming principles in Python, focusing on student performance tracking and early warning systems.
 
 ## Features
+
+## Role Based Dashboards
+
+## Student Dashboard
+
+- View grades and performance trends
+- Check attendance patterns
+- View enrolled courses
+- Message lecturers for queries
+- Track personal academic progress
+
+## Lecturer Dashboard
+
+- Track class performance metrics
+- Upload student marks
+- Generate student reports
+- Identify students needing support
+- View course-related analytics
+- Message students for course queries
+- Administrator Dashboard
+- View institution-wide analytics
+- Add new students to the system
+- Add new lecturers to the system
+- Manage system settings
+- Generate institutional reports
+
+# Technical Features
+
 - **Data Integration & Management**
   - Import and manage student records
   - Track course enrollments
@@ -41,22 +69,34 @@ EduPulse is an educational analytics dashboard designed to help higher education
 EduPulse/
 ├── static/
 │   ├── css/
-│   │   └── style.css
+│   │   ├── style.css
+│   │   └── dashboard.css
 │   └── js/
 │       └── main.js
 ├── templates/
-│   ├── analytics.html
+│   ├── main_dashboard.html
+│   ├── student_dashboard.html
+│   ├── lecturer_dashboard.html
+│   ├── admin_dashboard.html
 │   ├── base.html
 │   ├── courses.html
-│   ├── dashboard.html
-│   └── students.html
+│   ├── analytics.html
+│   ├── reports.html
+|
 ├── routes/
 │   ├── __init__.py
-│   └── analytics.py
+│   ├── analytics.py
+│   ├── auth.py
+│   └── dashboard.py
+├── models/
+│   ├── __init__.py
+│   ├── student.py
+│   ├── lecturer.py
+│   └── course.py
 ├── app.py
 ├── db_manager.py
+├── requirements.txt
 └── README.md
-```
 
 ## Key Components
 
@@ -106,23 +146,6 @@ python app.py
 http://localhost:5000
 ```
 
-## Usage
-
-### Admin Dashboard
-- View overall system statistics
-- Manage courses and enrollments
-- Generate reports
-
-### Lecturer View
-- Monitor course performance
-- Track attendance
-- Identify at-risk students
-- Record assessment results
-
-### Student View
-- View personal performance metrics
-- Check attendance records
-- Access course materials
 
 ## Contributing
 1. Fork the repository
@@ -135,9 +158,8 @@ http://localhost:5000
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Authors
-- Robert Tumushiime - MSc Data Science Student, UCU
+- Bob Robert Tumushiime - MSc Data Science Student, Uganda Christian University
 
 ## Acknowledgments
 - Uganda Christian University
 - Faculty of Science and Technology
-- Object Oriented Programming Course Instructors
