@@ -30,8 +30,9 @@
                     </p>
                     <ul class="list-unstyled text-start">
                         <li><i class="fas fa-check-circle text-success me-2"></i> View your grades and performance trends</li>
-                        <li><i class="fas fa-check-circle text-success me-2"></i> Check attendance records</li>
-                        <li><i class="fas fa-check-circle text-success me-2"></i> Access course materials</li>
+                        <li><i class="fas fa-check-circle text-success me-2"></i> Check Attendance Patterns</li>
+                        <li><i class="fas fa-check-circle text-success me-2"></i> View Enrolled Courses</li>
+                        <li><i class="fas fa-check-circle text-success me-2"></i> Message a lecturer for any course related queries</li>
                     </ul>
                     <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary mt-3">
                         <i class="fas fa-arrow-right me-2"></i> Student Dashboard
@@ -53,6 +54,9 @@
                         <li><i class="fas fa-check-circle text-success me-2"></i> Track class performance metrics</li>
                         <li><i class="fas fa-check-circle text-success me-2"></i> Monitor student attendance</li>
                         <li><i class="fas fa-check-circle text-success me-2"></i> Identify students needing support</li>
+                        <li><i class="fas fa-check-circle text-success me-2"></i> View course related analytics
+                        <li><i class="fas fa-check-circle text-success me-2"></i> Message students for any course related queries</li></li>
+
                     </ul>
                     <a href="{{ url_for('lecturer_dashboard') }}" class="btn btn-primary mt-3">
                         <i class="fas fa-arrow-right me-2"></i> Lecturer Dashboard
@@ -72,7 +76,8 @@
                     </p>
                     <ul class="list-unstyled text-start">
                         <li><i class="fas fa-check-circle text-success me-2"></i> View institution-wide analytics</li>
-                        <li><i class="fas fa-check-circle text-success me-2"></i> Generate comprehensive reports</li>
+                        <li><i class="fas fa-check-circle text-success me-2"></i> Add new students to the system</li>
+                        <li><i class="fas fa-check-circle text-success me-2"></i> Add new lecturers to the system</li>
                         <li><i class="fas fa-check-circle text-success me-2"></i> Manage system settings</li>
                     </ul>
                     <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary mt-3">
