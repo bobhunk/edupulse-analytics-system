@@ -32,27 +32,27 @@ class Student(Person):
             program: Academic program
             metadata: Additional student data
         """
-        super().__init__(id, name, email)
-        self._enrollment_date = enrollment_date
-        self._program = program
-        self._metadata = metadata or {}
+        super().__init__(id, name, email) # initializes the base class
+        self._enrollment_date = enrollment_date # protected attribute
+        self._program = program 
+        self._metadata = metadata or {} # initializes metadata as an empty dictionary if not provided
     
-    @property
-    def enrollment_date(self) -> str:
+    @property # creates read access method
+    def enrollment_date(self) -> str: # getter method allows you to access the enrollment_date attribute directly
         """Get the student's enrollment date."""
         return self._enrollment_date
     
-    @enrollment_date.setter
+    @enrollment_date.setter #setter method allows you to set the enrollment_date attribute directly
     def enrollment_date(self, value: str) -> None:
         """Set the student's enrollment date."""
         self._enrollment_date = value
     
-    @property
+    @property  # getter method allows you to access the program attribute directly
     def program(self) -> str:
         """Get the student's academic program."""
         return self._program
     
-    @program.setter
+    @program.setter # creates write access method
     def program(self, value: str) -> None:
         """Set the student's academic program."""
         self._program = value
@@ -62,7 +62,7 @@ class Student(Person):
         """Get the student's metadata."""
         return self._metadata
     
-    @metadata.setter
+    @metadata.setter 
     def metadata(self, value: Dict) -> None:
         """Set the student's metadata."""
         self._metadata = value

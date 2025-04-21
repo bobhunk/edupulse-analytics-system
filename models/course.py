@@ -14,7 +14,7 @@ class Course:
             lecturer_id: ID of the lecturer teaching the course
             course_code: Course code (e.g., CS101)
         """
-        self.course_id = course_id
+        self.course_id = course_id 
         self.course_name = course_name
         self.lecturer_id = lecturer_id
         self.course_code = course_code

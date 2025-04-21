@@ -61,7 +61,7 @@ class Student(Person):
         self.courses = []  # List of courses the student is enrolled in
         self.grades = {}   # Dictionary mapping assessment IDs to grades
     
-    def get_role(self):
+    def get_role(self): # overides the abstract method in the Person class
         """Get the role of the person in the educational system."""
         return "Student"
     

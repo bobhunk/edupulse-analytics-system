@@ -6,7 +6,7 @@ class Assessment(ABC):
     This class follows the OOP principle of abstraction.
     """
     
-    @abstractmethod
+    @abstractmethod 
     def __init__(self, assessment_id, name, course_id, max_points):
         """
         Initialize an Assessment object.
@@ -102,7 +102,7 @@ class Quiz(Assessment):
         """
         super().__init__(assessment_id, name, course_id, max_points)
     
-    def get_assessment_type(self):
+    def get_assessment_type(self): # Quiz overrides the abstract method from Assessment class
         """Get the type of assessment."""
         return "Quiz"
 
@@ -125,7 +125,7 @@ class Exam(Assessment):
         """
         super().__init__(assessment_id, name, course_id, max_points)
     
-    def get_assessment_type(self):
+    def get_assessment_type(self): # Exam overrides the abstract method from Assessment class
         """Get the type of assessment."""
         return "Exam"
 
