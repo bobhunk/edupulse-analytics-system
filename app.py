@@ -21,7 +21,7 @@ app.config['SESSION_TYPE'] = 'filesystem'
 
 # Database connection helper
 def get_db_connection():
-    conn = sqlite3.connect('database/edupulse.db')
+    conn = sqlite3.connect('database/edupulse.db', timeout=30)  # Add 30-second timeout
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -1613,104 +1613,150 @@ def view_messages():
     user_id = session['user_id']
     user_type = session['user_type']
     
-    conn = get_db_connection()
+    # Initialize variables
+    received_messages_list = []
+    sent_messages_list = []
+    courses_list = []
+    recipients_list = []
+    unread_count = 0
     
-    # Get received messages
-    received_messages = conn.execute('''
-        SELECT m.id, m.subject, m.message, m.timestamp, m.read,
-               CASE 
-                   WHEN m.sender_type = 'student' THEN s.name
-                   WHEN m.sender_type = 'lecturer' THEN l.name
-                   ELSE 'Admin'
-               END as sender_name,
-               c.course_code as course_code
-        FROM messages m
-        LEFT JOIN students s ON m.sender_id = s.id AND m.sender_type = 'student'
-        LEFT JOIN lecturers l ON m.sender_id = l.id AND m.sender_type = 'lecturer'
-        LEFT JOIN courses c ON m.course_id = c.id
-        WHERE m.recipient_id = ? AND m.recipient_type = ?
-        ORDER BY m.timestamp DESC
-    ''', (user_id, user_type)).fetchall()
-    
-    # Get sent messages
-    sent_messages = conn.execute('''
-        SELECT m.id, m.subject, m.message, m.timestamp, m.read,
-               CASE 
-                   WHEN m.recipient_type = 'student' THEN s.name
-                   WHEN m.recipient_type = 'lecturer' THEN l.name
-                   ELSE 'Admin'
-               END as recipient_name,
-               c.course_code as course_code
-        FROM messages m
-        LEFT JOIN students s ON m.recipient_id = s.id AND m.recipient_type = 'student'
-        LEFT JOIN lecturers l ON m.recipient_id = l.id AND m.recipient_type = 'lecturer'
-        LEFT JOIN courses c ON m.course_id = c.id
-        WHERE m.sender_id = ? AND m.sender_type = ?
-        ORDER BY m.timestamp DESC
-    ''', (user_id, user_type)).fetchall()
-    
-    # Mark all received messages as read
-    conn.execute('''
-        UPDATE messages
-        SET read = 1
-        WHERE recipient_id = ? AND recipient_type = ? AND read = 0
-    ''', (user_id, user_type))
-    
-    conn.commit()
-    
-    # Get courses and potential recipients for new messages
-    courses = []
-    recipients = []
-    
-    if user_type == 'student':
-        # Get courses the student is enrolled in
-        courses = conn.execute('''
-            SELECT c.id, c.course_code, c.title
-            FROM courses c
-            JOIN enrollments e ON c.id = e.course_id
-            WHERE e.student_id = ?
-        ''', (user_id,)).fetchall()
+    # First, handle the read operations
+    try:
+        conn = get_db_connection()
         
-        # Get lecturers of those courses
-        recipients = conn.execute('''
-            SELECT DISTINCT l.id, l.name, 'lecturer' as type
-            FROM lecturers l
-            JOIN courses c ON l.id = c.lecturer_id
-            JOIN enrollments e ON c.id = e.course_id
-            WHERE e.student_id = ?
-        ''', (user_id,)).fetchall()
+        # Get received messages
+        received_messages = conn.execute('''
+            SELECT m.id, m.subject, m.message, m.timestamp, m.read,
+                   CASE 
+                       WHEN m.sender_type = 'student' THEN s.name
+                       WHEN m.sender_type = 'lecturer' THEN l.name
+                       ELSE 'Admin'
+                   END as sender_name,
+                   c.course_code as course_code
+            FROM messages m
+            LEFT JOIN students s ON m.sender_id = s.id AND m.sender_type = 'student'
+            LEFT JOIN lecturers l ON m.sender_id = l.id AND m.sender_type = 'lecturer'
+            LEFT JOIN courses c ON m.course_id = c.id
+            WHERE m.recipient_id = ? AND m.recipient_type = ?
+            ORDER BY m.timestamp DESC
+        ''', (user_id, user_type)).fetchall()
         
-    elif user_type == 'lecturer':
-        # Get courses taught by the lecturer
-        courses = conn.execute('''
-            SELECT id, course_code, title
-            FROM courses
-            WHERE lecturer_id = ?
-        ''', (user_id,)).fetchall()
+        # Convert to list of dictionaries
+        for msg in received_messages:
+            received_messages_list.append(dict(msg))
         
-        # Get students enrolled in those courses
-        recipients = conn.execute('''
-            SELECT DISTINCT s.id, s.name, 'student' as type
-            FROM students s
-            JOIN enrollments e ON s.id = e.student_id
-            JOIN courses c ON e.course_id = c.id
-            WHERE c.lecturer_id = ?
-        ''', (user_id,)).fetchall()
+        # Get sent messages
+        sent_messages = conn.execute('''
+            SELECT m.id, m.subject, m.message, m.timestamp, m.read,
+                   CASE 
+                       WHEN m.recipient_type = 'student' THEN s.name
+                       WHEN m.recipient_type = 'lecturer' THEN l.name
+                       ELSE 'Admin'
+                   END as recipient_name,
+                   c.course_code as course_code
+            FROM messages m
+            LEFT JOIN students s ON m.recipient_id = s.id AND m.recipient_type = 'student'
+            LEFT JOIN lecturers l ON m.recipient_id = l.id AND m.recipient_type = 'lecturer'
+            LEFT JOIN courses c ON m.course_id = c.id
+            WHERE m.sender_id = ? AND m.sender_type = ?
+            ORDER BY m.timestamp DESC
+        ''', (user_id, user_type)).fetchall()
+        
+        # Convert to list of dictionaries
+        for msg in sent_messages:
+            sent_messages_list.append(dict(msg))
+        
+        # Get courses and potential recipients for new messages
+        if user_type == 'student':
+            # Get courses the student is enrolled in
+            courses = conn.execute('''
+                SELECT c.id, c.course_code, c.title
+                FROM courses c
+                JOIN enrollments e ON c.id = e.course_id
+                WHERE e.student_id = ?
+            ''', (user_id,)).fetchall()
+            
+            # Convert to list of dictionaries
+            for course in courses:
+                courses_list.append(dict(course))
+            
+            # Get lecturers of those courses
+            recipients = conn.execute('''
+                SELECT DISTINCT l.id, l.name, 'lecturer' as type
+                FROM lecturers l
+                JOIN courses c ON l.id = c.lecturer_id
+                JOIN enrollments e ON c.id = e.course_id
+                WHERE e.student_id = ?
+            ''', (user_id,)).fetchall()
+            
+            # Convert to list of dictionaries
+            for recipient in recipients:
+                recipients_list.append(dict(recipient))
+            
+        elif user_type == 'lecturer':
+            # Get courses taught by the lecturer
+            courses = conn.execute('''
+                SELECT id, course_code, title
+                FROM courses
+                WHERE lecturer_id = ?
+            ''', (user_id,)).fetchall()
+            
+            # Convert to list of dictionaries
+            for course in courses:
+                courses_list.append(dict(course))
+            
+            # Get students enrolled in those courses
+            recipients = conn.execute('''
+                SELECT DISTINCT s.id, s.name, 'student' as type
+                FROM students s
+                JOIN enrollments e ON s.id = e.student_id
+                JOIN courses c ON e.course_id = c.id
+                WHERE c.lecturer_id = ?
+            ''', (user_id,)).fetchall()
+            
+            # Convert to list of dictionaries
+            for recipient in recipients:
+                recipients_list.append(dict(recipient))
+        
+        # Get unread message count for the navbar
+        unread_result = conn.execute('''
+            SELECT COUNT(*) as count
+            FROM messages
+            WHERE recipient_id = ? AND recipient_type = ? AND read = 0
+        ''', (user_id, user_type)).fetchone()
+        
+        if unread_result:
+            unread_count = unread_result['count']
+        
+        conn.close()
+    except sqlite3.Error as e:
+        flash(f"Error retrieving messages: {str(e)}", "danger")
+        return redirect(url_for('lecturer_dashboard' if user_type == 'lecturer' else 'student_dashboard'))
     
-    # Get unread message count for the navbar
-    unread_count = conn.execute('''
-        SELECT COUNT(*) as count
-        FROM messages
-        WHERE recipient_id = ? AND recipient_type = ? AND read = 0
-    ''', (user_id, user_type)).fetchone()['count']
-    
-    conn.close()
+    # Now, handle the write operation in a separate try block
+    try:
+        # Only attempt to mark messages as read if there are unread messages
+        if unread_count > 0:
+            conn = get_db_connection()
+            
+            # Mark all received messages as read in a separate transaction
+            conn.execute('''
+                UPDATE messages
+                SET read = 1
+                WHERE recipient_id = ? AND recipient_type = ? AND read = 0
+            ''', (user_id, user_type))
+            
+            conn.commit()
+            conn.close()
+    except sqlite3.Error as e:
+        # If we can't mark messages as read, just log the error but don't fail the page load
+        print(f"Error marking messages as read: {str(e)}")
     
     return render_template('messages.html', 
-                           received_messages=received_messages,
-                           sent_messages=sent_messages,
-                           courses=courses,
-                           recipients=recipients,
+                           received_messages=received_messages_list,
+                           sent_messages=sent_messages_list,
+                           courses=courses_list,
+                           recipients=recipients_list,
                            unread_count=unread_count)
 
 @app.route('/send_message', methods=['POST'])
