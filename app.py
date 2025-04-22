@@ -2193,17 +2193,36 @@ def generate_student_report_new(student_id, report_type=None):
                             course_sheet[f'E{row}'] = f"{round(percentage, 1)}%"
                             row += 1
         
-            # Auto-adjust column width for all sheets
-            for sheet in workbook.worksheets:
-                for column in sheet.columns:
-                    max_length = 0
-                    column_letter = column[0].column_letter
-                    for cell in column:
-                        if cell.value:
-                            max_length = max(max_length, len(str(cell.value)))
-                    adjusted_width = (max_length + 2)
-                    sheet.column_dimensions[column_letter].width = adjusted_width
+            # # Auto-adjust column width for all sheets
+            # for sheet in workbook.worksheets:
+            #     for column in sheet.columns:
+            #         max_length = 0
+            #         column_letter = column[0].column_letter
+            #         for cell in column:
+            #             if cell.value:
+            #                 max_length = max(max_length, len(str(cell.value)))
+            #         adjusted_width = (max_length + 2)
+            #         sheet.column_dimensions[column_letter].width = adjusted_width
             
+            # Set fixed column widths for each sheet
+            info_sheet.column_dimensions['A'].width = 20
+            info_sheet.column_dimensions['B'].width = 30
+
+            summary_sheet.column_dimensions['A'].width = 35  # Course
+            summary_sheet.column_dimensions['B'].width = 25  # Lecturer
+            summary_sheet.column_dimensions['C'].width = 15  # Performance
+            summary_sheet.column_dimensions['D'].width = 15  # Attendance
+
+            # Set fixed widths for course detail sheets
+            for sheet in workbook.worksheets:
+                if sheet.title not in ["Student Info", "Course Summary"]:
+                    sheet.column_dimensions['A'].width = 30  # Assessment name
+                    sheet.column_dimensions['B'].width = 15  # Type
+                    sheet.column_dimensions['C'].width = 10  # Score
+                    sheet.column_dimensions['D'].width = 15  # Max Points
+                    sheet.column_dimensions['E'].width = 15  # Percentage
+
+
             # Save workbook
             workbook.save(output)
             output.seek(0)
@@ -2599,17 +2618,38 @@ def generate_course_report(course_id, report_type=None):
                     assess_sheet[f'G{row}'] = f"{stat['completion_rate']}%"
                     row += 1
                 
-                # Auto-adjust column width for all sheets
-                for sheet in workbook.worksheets:
-                    for column in sheet.columns:
-                        max_length = 0
-                        column_letter = column[0].column_letter
-                        for cell in column:
-                            if cell.value:
-                                max_length = max(max_length, len(str(cell.value)))
-                        adjusted_width = (max_length + 2)
-                        sheet.column_dimensions[column_letter].width = adjusted_width
+                # # Auto-adjust column width for all sheets
+                # for sheet in workbook.worksheets:
+                #     for column in sheet.columns:
+                #         max_length = 0
+                #         column_letter = column[0].column_letter
+                #         for cell in column:
+                #             if cell.value:
+                #                 max_length = max(max_length, len(str(cell.value)))
+                #         adjusted_width = (max_length + 2)
+                #         sheet.column_dimensions[column_letter].width = adjusted_width
                 
+                # Set fixed column widths for each sheet
+                info_sheet.column_dimensions['A'].width = 20
+                info_sheet.column_dimensions['B'].width = 30
+
+                student_sheet.column_dimensions['A'].width = 25  # Student name
+                student_sheet.column_dimensions['B'].width = 30  # Email
+                student_sheet.column_dimensions['C'].width = 15  # Program
+                student_sheet.column_dimensions['D'].width = 15  # Performance
+                student_sheet.column_dimensions['E'].width = 10  # Grade
+                student_sheet.column_dimensions['F'].width = 15  # Attendance
+
+                assess_sheet.column_dimensions['A'].width = 25  # Assessment
+                assess_sheet.column_dimensions['B'].width = 15  # Type
+                assess_sheet.column_dimensions['C'].width = 15  # Max Points
+                assess_sheet.column_dimensions['D'].width = 15  # Avg Score
+                assess_sheet.column_dimensions['E'].width = 15  # Max Score
+                assess_sheet.column_dimensions['F'].width = 15  # Min Score
+                assess_sheet.column_dimensions['G'].width = 15  # Completion Rate
+
+
+
                 # Save workbook
                 workbook.save(output)
                 output.seek(0)
@@ -2848,16 +2888,20 @@ def generate_at_risk_report(report_type):
                     worksheet[f'E{row}'] = ", ".join(student['risk_factors'])
                     row += 1
                 
-                # Auto-adjust column width
-                for column in worksheet.columns:
-                    max_length = 0
-                    column_letter = column[0].column_letter
-                    for cell in column:
-                        if cell.value:
-                            max_length = max(max_length, len(str(cell.value)))
-                    adjusted_width = (max_length + 2)
-                    worksheet.column_dimensions[column_letter].width = adjusted_width
+                # # Auto-adjust column width
+                # for column_cells in worksheet.columns:
+                #     length = max(len(str(cell.value) if cell.value else "") for cell in column_cells)
+                #     if column_cells[0].column_letter:  # Skip merged cells
+                #         worksheet.column_dimensions[column_cells[0].column_letter].width = length + 2
                 
+
+                # Set fixed column widths 
+                worksheet.column_dimensions['A'].width = 25  # Student name
+                worksheet.column_dimensions['B'].width = 30  # Course
+                worksheet.column_dimensions['C'].width = 15  # Performance
+                worksheet.column_dimensions['D'].width = 15  # Attendance
+                worksheet.column_dimensions['E'].width = 25  # Risk factors
+
                 # Save workbook
                 workbook.save(output)
                 output.seek(0)
