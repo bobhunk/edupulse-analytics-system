@@ -475,6 +475,7 @@ def lecturer_dashboard():
     
     # Get at-risk students
     at_risk_students = []
+    all_students = []
     total_students = 0
     
     # Prepare data for visualizations
@@ -555,6 +556,19 @@ def lecturer_dashboard():
                 risk_factors.append("Low performance")
             if attendance_rate < 65:
                 risk_factors.append("Poor attendance")
+
+            all_students.append({
+                    'id': student_id,
+                    'name': student['name'],
+                    'email': student['email'],
+                    'course_id': course_id,
+                    'course_code': course_code,
+                    'course_title': course_title,
+                    'performance': round(performance, 1),
+                    'grade': 'F' if performance < 50 else 'D' if performance < 60 else 'C' if performance < 70 else 'B' if performance < 80 else 'A',
+                    'attendance_rate': round(attendance_rate, 1),
+                    'risk_factors': risk_factors
+                })
             
             # Add at-risk students to the list if they meet BOTH criteria
             if performance < 55 and attendance_rate < 65 and attendance_records and risk_factors:
@@ -604,6 +618,7 @@ def lecturer_dashboard():
                            lecturer=lecturer, 
                            courses=courses, 
                            at_risk_students=at_risk_students,
+                           all_students = all_students,
                            at_risk_count=at_risk_count,
                            at_risk_percentage=at_risk_percentage,
                            total_students=total_students,
@@ -1759,8 +1774,8 @@ def generate_student_reports():
 
     return redirect(url_for('lecturer_dashboard'))
 
-@app.route('/generate_student_report/<int:student_id>')
-def generate_student_report(student_id):
+@app.route('/generate_student_reportold/<int:student_id>')
+def generate_student_reportold(student_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
     
@@ -3762,6 +3777,307 @@ def dashboard():
                           user_type=user_type,
                           courses=courses,
                           unread_messages=unread_messages)
+
+# Brought function up 
+@app.route('/generate_student_report/<int:student_id>/<report_type>')
+def generate_student_report(student_id, report_type):
+    """Generate individual student report in PDF or Excel format"""
+    if 'user_id' not in session or session['user_type'] != 'lecturer':
+        flash('You must be logged in as a lecturer to access this page', 'danger')
+        return redirect(url_for('login'))
+    
+    conn = sqlite3.connect('database/edupulse.db')
+    conn.row_factory = sqlite3.Row
+    
+    try:
+        # Get student information
+        student = conn.execute('SELECT * FROM students WHERE id = ?', (student_id,)).fetchone()
+        
+        if not student:
+            flash('Student not found', 'danger')
+            conn.close()
+            return redirect(url_for('lecturer_dashboard'))
+        
+        # Get student's courses and performance
+        courses = conn.execute('''
+            SELECT c.id, c.course_code, c.title, e.enrollment_date
+            FROM courses c
+            JOIN enrollments e ON c.id = e.course_id
+            WHERE e.student_id = ?
+        ''', (student_id,)).fetchall()
+        
+        if not courses:
+            flash('Student is not enrolled in any courses', 'warning')
+            conn.close()
+            return redirect(url_for('lecturer_dashboard'))
+        
+        course_performance = []
+        overall_performance = {
+            'total_score': 0,
+            'total_possible': 0,
+            'average_score': 0,
+            'course_count': len(courses),
+            'attendance_rate': 0,
+            'total_attendance': 0,
+            'total_sessions': 0
+        }
+        
+        for course in courses:
+            course_id = course['id']
+            
+            # Get assessments for this course
+            assessments = conn.execute('''
+                SELECT a.id, a.name, a.type, a.max_points, m.score
+                FROM assessments a
+                LEFT JOIN marks m ON a.id = m.assessment_id
+                WHERE a.course_id = ? AND m.student_id = ?
+            ''', (course_id, student_id)).fetchall()
+            if not assessments:
+                flash('Unable to generate report: Student has no assessments to base on for report','danger')
+                conn.close()
+                return redirect(url_for('lecturer_dashboard'))
+            
+            # Calculate performance for this course
+            total_score = 0
+            total_possible = 0
+            
+            for assessment in assessments:
+                if assessment['score'] is not None:
+                    total_score += assessment['score']
+                    total_possible += assessment['max_points']
+                    
+                    # Add to overall totals
+                    overall_performance['total_score'] += assessment['score']
+                    overall_performance['total_possible'] += assessment['max_points']
+            
+            performance = (total_score / total_possible * 100) if total_possible > 0 else 0
+            
+            # Get attendance for this course
+            attendance = conn.execute('''
+                SELECT date, status
+                FROM attendance 
+                WHERE student_id = ? AND course_id = ?
+            ''', (student_id, course_id)).fetchall()
+            
+            attended = sum(1 for record in attendance if record['status'] == 'present')
+            attendance_rate = (attended / len(attendance) * 100) if attendance else 0
+            
+            # Add to overall attendance
+            overall_performance['total_attendance'] += attended
+            overall_performance['total_sessions'] += len(attendance)
+            
+            course_performance.append({
+                'course_id': course_id,
+                'course_code': course['code'],
+                'course_title': course['title'],
+                'performance': round(performance, 1),
+                'attendance_rate': round(attendance_rate, 1),
+                'grade': 'F' if performance < 50 else 'D' if performance < 60 else 'C' if performance < 70 else 'B' if performance < 80 else 'A'
+            })
+        
+        # Calculate overall average
+        if overall_performance['total_possible'] > 0:
+            overall_performance['average_score'] = (overall_performance['total_score'] / overall_performance['total_possible'] * 100)
+        
+        # Calculate overall attendance rate
+        if overall_performance['total_sessions'] > 0:
+            overall_performance['attendance_rate'] = (overall_performance['total_attendance'] / overall_performance['total_sessions'] * 100)
+        
+        # Generate report based on type
+        if report_type == 'pdf':
+            try:
+                # Create PDF report
+                buffer = BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=letter)
+                styles = getSampleStyleSheet()
+                elements = []
+                
+                # Title
+                elements.append(Paragraph(f"Student Performance Report: {student['name']}", styles['Title']))
+                elements.append(Spacer(1, 12))
+                
+                # Student Information
+                elements.append(Paragraph(f"Student ID: {student['id']}", styles['Normal']))
+                elements.append(Paragraph(f"Email: {student['email']}", styles['Normal']))
+                elements.append(Paragraph(f"Overall Performance: {round(overall_performance['average_score'], 1)}%", styles['Normal']))
+                elements.append(Paragraph(f"Overall Attendance: {round(overall_performance['attendance_rate'], 1)}%", styles['Normal']))
+                elements.append(Spacer(1, 12))
+                
+                # Course Performance Table
+                data = [['Course', 'Performance', 'Grade', 'Attendance']]
+                for cp in course_performance:
+                    data.append([
+                        f"{cp['course_code']}: {cp['course_title']}", 
+                        f"{cp['performance']}%", 
+                        cp['grade'], 
+                        f"{cp['attendance_rate']}%"
+                    ])
+                
+                table = Table(data, colWidths=[250, 70, 50, 70])
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ]))
+                
+                elements.append(table)
+                
+                # Risk Assessment
+                is_at_risk = False
+                risk_factors = []
+                
+                if overall_performance['average_score'] < 55:
+                    is_at_risk = True
+                    risk_factors.append("Low academic performance")
+                
+                if overall_performance['attendance_rate'] < 65:
+                    is_at_risk = True
+                    risk_factors.append("Poor attendance")
+                
+                if is_at_risk:
+                    elements.append(Spacer(1, 12))
+                    elements.append(Paragraph("Risk Assessment", styles['Heading2']))
+                    elements.append(Paragraph("This student is at risk due to:", styles['Normal']))
+                    
+                    for factor in risk_factors:
+                        elements.append(Paragraph(f"• {factor}", styles['Normal']))
+                    
+                    elements.append(Paragraph("Recommended Action: Schedule a meeting with this student to discuss their performance and attendance.", styles['Normal']))
+                
+                # Build PDF
+                doc.build(elements)
+                buffer.seek(0)
+                
+                # Create response
+                response = make_response(buffer.getvalue())
+                response.headers['Content-Type'] = 'application/pdf'
+                response.headers['Content-Disposition'] = f'attachment; filename=student_report_{student_id}.pdf'
+                
+                conn.close()
+                return response
+                
+            except Exception as e:
+                flash(f'Error generating PDF report: {str(e)}', 'danger')
+                conn.close()
+                return redirect(url_for('lecturer_dashboard'))
+                
+        elif report_type == 'excel':
+            try:
+                # Create Excel report
+                output = BytesIO()
+                workbook = Workbook()
+                worksheet = workbook.active
+                worksheet.title = "Student Report"
+                
+                # Add title
+                worksheet['A1'] = f"Student Performance Report: {student['name']}"
+                worksheet.merge_cells('A1:D1')
+                title_cell = worksheet['A1']
+                title_cell.font = Font(size=14, bold=True)
+                title_cell.alignment = Alignment(horizontal='center')
+                
+                # Add student information
+                worksheet['A3'] = "Student ID:"
+                worksheet['B3'] = student['id']
+                worksheet['A4'] = "Email:"
+                worksheet['B4'] = student['email']
+                worksheet['A5'] = "Overall Performance:"
+                worksheet['B5'] = f"{round(overall_performance['average_score'], 1)}%"
+                worksheet['A6'] = "Overall Attendance:"
+                worksheet['B6'] = f"{round(overall_performance['attendance_rate'], 1)}%"
+                
+                # Add course performance table
+                worksheet['A8'] = "Course"
+                worksheet['B8'] = "Performance"
+                worksheet['C8'] = "Grade"
+                worksheet['D8'] = "Attendance"
+                
+                # Style header row
+                for cell in worksheet['A8:D8'][0]:
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill(start_color="DDDDDD", end_color="DDDDDD", fill_type="solid")
+                
+                # Add data rows
+                row = 9
+                for cp in course_performance:
+                    worksheet[f'A{row}'] = f"{cp['course_code']}: {cp['course_title']}"
+                    worksheet[f'B{row}'] = f"{cp['performance']}%"
+                    worksheet[f'C{row}'] = cp['grade']
+                    worksheet[f'D{row}'] = f"{cp['attendance_rate']}%"
+                    row += 1
+                
+                # Add risk assessment
+                is_at_risk = False
+                risk_factors = []
+                
+                if overall_performance['average_score'] < 55:
+                    is_at_risk = True
+                    risk_factors.append("Low academic performance")
+                
+                if overall_performance['attendance_rate'] < 65:
+                    is_at_risk = True
+                    risk_factors.append("Poor attendance")
+                
+                if is_at_risk:
+                    row += 2
+                    worksheet[f'A{row}'] = "Risk Assessment"
+                    worksheet.merge_cells(f'A{row}:D{row}')
+                    risk_cell = worksheet[f'A{row}']
+                    risk_cell.font = Font(size=12, bold=True)
+                    
+                    row += 1
+                    worksheet[f'A{row}'] = "This student is at risk due to:"
+                    worksheet.merge_cells(f'A{row}:D{row}')
+                    
+                    for factor in risk_factors:
+                        row += 1
+                        worksheet[f'A{row}'] = f"• {factor}"
+                        worksheet.merge_cells(f'A{row}:D{row}')
+                    
+                    row += 1
+                    worksheet[f'A{row}'] = "Recommended Action: Schedule a meeting with this student to discuss their performance and attendance."
+                    worksheet.merge_cells(f'A{row}:D{row}')
+                
+                # Auto-adjust column width
+                for column in worksheet.columns:
+                    max_length = 0
+                    column_letter = column[0].column_letter
+                    for cell in column:
+                        if cell.value:
+                            max_length = max(max_length, len(str(cell.value)))
+                    adjusted_width = (max_length + 2)
+                    worksheet.column_dimensions[column_letter].width = adjusted_width
+                
+                # Save workbook
+                workbook.save(output)
+                output.seek(0)
+                
+                # Create response
+                response = make_response(output.getvalue())
+                response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                response.headers['Content-Disposition'] = f'attachment; filename=student_report_{student_id}.xlsx'
+                
+                conn.close()
+                return response
+                
+            except Exception as e:
+                flash(f'Error generating Excel report: {str(e)}', 'danger')
+                conn.close()
+                return redirect(url_for('lecturer_dashboard'))
+        
+        else:
+            flash('Invalid report type', 'danger')
+            conn.close()
+            return redirect(url_for('lecturer_dashboard'))
+            
+    except Exception as e:
+        flash(f'Error generating report: {str(e)}', 'danger')
+        conn.close()
+        return redirect(url_for('lecturer_dashboard'))
 
 # Run the application
 if __name__ == '__main__':
