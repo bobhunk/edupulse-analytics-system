@@ -2670,7 +2670,7 @@ def generate_at_risk_report(report_type):
         # Process each course
         for course in courses:
             course_id = course['id']
-            course_code = course['code']
+            course_code = course['course_code']
             course_title = course['title']
                 
             # Get students enrolled in this course
