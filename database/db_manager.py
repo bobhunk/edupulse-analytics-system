@@ -47,7 +47,9 @@ class DatabaseManager:
         """
         Set up the database schema if it doesn't exist.
         """
-        # Create tables based on schema
+        # Create tables based on schema # hides the implementation details of the database schema
+        # and provides a clean interface for the rest of the application.
+        
         conn = self.connect()
         cursor = conn.cursor()
         

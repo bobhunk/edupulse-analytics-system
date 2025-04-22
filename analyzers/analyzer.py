@@ -28,7 +28,7 @@ class Analyzer(ABC):
         self.db_manager = db_manager
     
     @abstractmethod
-    def analyze(self, data_id: int) -> Dict[str, Any]:
+    def analyze(self, data_id: int) -> Dict[str, Any]: # hides the implementation details of the analysis process
         """
         Analyze data for a specific entity.
         
