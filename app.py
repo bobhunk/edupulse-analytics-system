@@ -1434,6 +1434,7 @@ def upload_marks_csv():
             # Read CSV file
             df = pd.read_csv(file)
             print(f"CSV data loaded: {len(df)} rows")
+            flash(f"CSV data loaded: {len(df)} rows")
             
             # Get all course codes from database for debugging
             cursor.execute('SELECT id, course_code FROM courses')
@@ -1477,7 +1478,7 @@ def upload_marks_csv():
                     
                     # Check if student is enrolled in course
                     cursor.execute(
-                        'SELECT id FROM enrollments WHERE student_id = ? AND course_id = ?', 
+                        'SELECT student_id,course_id FROM enrollments WHERE student_id = ? AND course_id = ?', 
                         (student_id, course_id)
                     )
                     enrollment = cursor.fetchone()
@@ -1541,7 +1542,7 @@ def upload_marks_csv():
         flash('Only CSV files are allowed', 'danger')
         
     return redirect(url_for('upload_marks'))
-                           
+                        
 @app.route('/view-marks/<int:course_id>')
 def view_marks(course_id):
     if 'user_id' not in session or session['user_type'] != 'lecturer':
