@@ -2221,6 +2221,423 @@ def generate_student_report_new(student_id, report_type=None):
             conn.close()
             return redirect(url_for('lecturer_dashboard'))
 
+
+@app.route('/generate_course_report/<int:course_id>', methods=['GET'])
+@app.route('/generate_course_report/<int:course_id>/<report_type>', methods=['GET'])
+def generate_course_report(course_id, report_type=None):
+    """Generate class performance report in HTML, PDF, or Excel format"""
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    conn = get_db_connection()
+    
+    try:
+        # Get course information
+        course = conn.execute('''
+            SELECT c.*, l.name as lecturer_name
+            FROM courses c
+            JOIN lecturers l ON c.lecturer_id = l.id
+            WHERE c.id = ?
+        ''', (course_id,)).fetchone()
+        
+        if not course:
+            conn.close()
+            flash('Course not found', 'danger')
+            return redirect(url_for('courses'))
+        
+        # Get students enrolled in the course
+        students = conn.execute('''
+            SELECT s.id, s.name, s.email, s.program
+            FROM students s
+            JOIN enrollments e ON s.id = e.student_id
+            WHERE e.course_id = ?
+            ORDER BY s.name
+        ''', (course_id,)).fetchall()
+        
+        if not students and report_type:
+            flash('No students enrolled in this course', 'warning')
+            conn.close()
+            return redirect(url_for('lecturer_dashboard'))
+        
+        # Get assessments for the course
+        assessments = conn.execute('''
+            SELECT id, name, type, max_points
+            FROM assessments
+            WHERE course_id = ?
+            ORDER BY id
+        ''', (course_id,)).fetchall()
+        
+        # Get marks for each student and assessment
+        student_marks = {}
+        student_performance = {}
+        
+        for student in students:
+            student_id = student['id']
+            
+            # Get all marks for this student in this course
+            marks = conn.execute('''
+                SELECT a.id as assessment_id, m.score
+                FROM assessments a
+                LEFT JOIN marks m ON a.id = m.assessment_id AND m.student_id = ?
+                WHERE a.course_id = ?
+            ''', (student_id, course_id)).fetchall()
+            
+            student_marks[student_id] = {}
+            
+            for mark in marks:
+                student_marks[student_id][mark['assessment_id']] = mark['score']
+            
+            # Calculate average score for this student
+            total_score = 0
+            total_possible = 0
+            
+            for assessment in assessments:
+                assessment_id = assessment['id']
+                if assessment_id in student_marks[student_id] and student_marks[student_id][assessment_id] is not None:
+                    total_score += student_marks[student_id][assessment_id]
+                    total_possible += assessment['max_points']
+            
+            avg_score = (total_score / total_possible * 100) if total_possible > 0 else 0
+            
+            # Get attendance for this student
+            attendance = conn.execute('''
+                SELECT date, status
+                FROM attendance
+                WHERE course_id = ? AND student_id = ?
+            ''', (course_id, student_id)).fetchall()
+            
+            if attendance:
+                present_count = sum(1 for record in attendance if record['status'] == 'present')
+                attendance_rate = (present_count / len(attendance)) * 100
+            else:
+                attendance_rate = 0
+            
+            student_performance[student_id] = {
+                'average_score': round(avg_score, 1),
+                'attendance_rate': round(attendance_rate, 1),
+                'grade': 'F' if avg_score < 50 else 'D' if avg_score < 60 else 'C' if avg_score < 70 else 'B' if avg_score < 80 else 'A'
+            }
+        
+        # Calculate overall course statistics
+        overall_stats = {
+            'student_count': len(students),
+            'assessment_count': len(assessments),
+            'total_score': 0,
+            'total_possible': 0,
+            'average_score': 0,
+            'highest_score': 0,
+            'lowest_score': 100,
+            'attendance_rate': 0,
+            'total_attendance': 0,
+            'total_sessions': 0
+        }
+        
+        # Calculate overall average score
+        for student_id, performance in student_performance.items():
+            overall_stats['total_score'] += performance['average_score']
+            
+            if performance['average_score'] > overall_stats['highest_score']:
+                overall_stats['highest_score'] = performance['average_score']
+            
+            if performance['average_score'] < overall_stats['lowest_score'] and performance['average_score'] > 0:
+                overall_stats['lowest_score'] = performance['average_score']
+            
+            overall_stats['attendance_rate'] += performance['attendance_rate']
+        
+        if len(student_performance) > 0:
+            overall_stats['average_score'] = round(overall_stats['total_score'] / len(student_performance), 1)
+            overall_stats['attendance_rate'] = round(overall_stats['attendance_rate'] / len(student_performance), 1)
+        
+        # Get assessment statistics
+        assessment_stats = []
+        
+        for assessment in assessments:
+            assessment_id = assessment['id']
+            
+            # Get all marks for this assessment
+            marks = conn.execute('''
+                SELECT score
+                FROM marks
+                WHERE assessment_id = ?
+            ''', (assessment_id,)).fetchall()
+            
+            if marks:
+                scores = [mark['score'] for mark in marks if mark['score'] is not None]
+                
+                if scores:
+                    avg_score = sum(scores) / len(scores)
+                    max_score = max(scores)
+                    min_score = min(scores)
+                    
+                    assessment_stats.append({
+                        'id': assessment_id,
+                        'name': assessment['name'],
+                        'type': assessment['type'],
+                        'max_points': assessment['max_points'],
+                        'avg_score': round(avg_score, 1),
+                        'max_score': max_score,
+                        'min_score': min_score,
+                        'completion_rate': round((len(scores) / len(students)) * 100, 1)
+                    })
+                else:
+                    assessment_stats.append({
+                        'id': assessment_id,
+                        'name': assessment['name'],
+                        'type': assessment['type'],
+                        'max_points': assessment['max_points'],
+                        'avg_score': 0,
+                        'max_score': 0,
+                        'min_score': 0,
+                        'completion_rate': 0
+                    })
+            else:
+                assessment_stats.append({
+                    'id': assessment_id,
+                    'name': assessment['name'],
+                    'type': assessment['type'],
+                    'max_points': assessment['max_points'],
+                    'avg_score': 0,
+                    'max_score': 0,
+                    'min_score': 0,
+                    'completion_rate': 0
+                })
+        
+        # If no report type specified, render the HTML template
+        if report_type is None:
+            conn.close()
+            return render_template('course_report.html',
+                                course=course,
+                                students=students,
+                                assessments=assessments,
+                                student_marks=student_marks,
+                                student_performance=student_performance,
+                                overall_stats=overall_stats,
+                                assessment_stats=assessment_stats)
+        
+        # Generate report based on type
+        if report_type == 'pdf':
+            try:
+                # Create PDF report
+                buffer = BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=letter)
+                styles = getSampleStyleSheet()
+                elements = []
+                
+                # Title
+                elements.append(Paragraph(f"Course Performance Report: {course['course_code']} - {course['title']}", styles['Title']))
+                elements.append(Spacer(1, 12))
+                
+                # Course Information
+                elements.append(Paragraph(f"Course ID: {course['id']}", styles['Normal']))
+                elements.append(Paragraph(f"Course Code: {course['course_code']}", styles['Normal']))
+                elements.append(Paragraph(f"Course Title: {course['title']}", styles['Normal']))
+                elements.append(Paragraph(f"Lecturer: {course['lecturer_name']}", styles['Normal']))
+                elements.append(Paragraph(f"Average Performance: {overall_stats['average_score']}%", styles['Normal']))
+                elements.append(Paragraph(f"Average Attendance: {overall_stats['attendance_rate']}%", styles['Normal']))
+                elements.append(Paragraph(f"Total Students: {len(students)}", styles['Normal']))
+                elements.append(Spacer(1, 12))
+                
+                # Student Performance Table
+                data = [['Student', 'Performance', 'Grade', 'Attendance']]
+                for student in students:
+                    student_id = student['id']
+                    perf = student_performance.get(student_id, {'average_score': 0, 'attendance_rate': 0, 'grade': 'N/A'})
+                    data.append([
+                        student['name'], 
+                        f"{perf['average_score']}%", 
+                        perf['grade'], 
+                        f"{perf['attendance_rate']}%"
+                    ])
+                
+                table = Table(data, colWidths=[200, 100, 50, 100])
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ]))
+                
+                elements.append(table)
+                elements.append(Spacer(1, 20))
+                
+                # Assessment Statistics Table
+                elements.append(Paragraph("Assessment Statistics", styles['Heading2']))
+                elements.append(Spacer(1, 12))
+                
+                assess_data = [['Assessment', 'Type', 'Avg Score', 'Max Score', 'Min Score', 'Completion']]
+                for stat in assessment_stats:
+                    assess_data.append([
+                        stat['name'],
+                        stat['type'],
+                        f"{stat['avg_score']}/{stat['max_points']}",
+                        f"{stat['max_score']}/{stat['max_points']}",
+                        f"{stat['min_score']}/{stat['max_points']}",
+                        f"{stat['completion_rate']}%"
+                    ])
+                
+                assess_table = Table(assess_data, colWidths=[120, 80, 70, 70, 70, 70])
+                assess_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ]))
+                
+                elements.append(assess_table)
+                
+                # Build PDF
+                doc.build(elements)
+                buffer.seek(0)
+                
+                # Create response
+                response = make_response(buffer.getvalue())
+                response.headers['Content-Type'] = 'application/pdf'
+                response.headers['Content-Disposition'] = f'attachment; filename=course_report_{course_id}.pdf'
+                
+                conn.close()
+                return response
+                
+            except Exception as e:
+                flash(f'Error generating PDF report: {str(e)}', 'danger')
+                conn.close()
+                return redirect(url_for('lecturer_dashboard'))
+                
+        elif report_type == 'excel':
+            try:
+                # Create Excel report
+                output = BytesIO()
+                workbook = Workbook()
+                
+                # Course Info Sheet
+                info_sheet = workbook.active
+                info_sheet.title = "Course Info"
+                
+                info_sheet['A1'] = f"Course Performance Report: {course['course_code']} - {course['title']}"
+                info_sheet.merge_cells('A1:D1')
+                title_cell = info_sheet['A1']
+                title_cell.font = Font(size=14, bold=True)
+                title_cell.alignment = Alignment(horizontal='center')
+                
+                # Add course information
+                info_sheet['A3'] = "Course ID:"
+                info_sheet['B3'] = course['id']
+                info_sheet['A4'] = "Course Code:"
+                info_sheet['B4'] = course['course_code']
+                info_sheet['A5'] = "Course Title:"
+                info_sheet['B5'] = course['title']
+                info_sheet['A6'] = "Lecturer:"
+                info_sheet['B6'] = course['lecturer_name']
+                info_sheet['A7'] = "Average Performance:"
+                info_sheet['B7'] = f"{overall_stats['average_score']}%"
+                info_sheet['A8'] = "Average Attendance:"
+                info_sheet['B8'] = f"{overall_stats['attendance_rate']}%"
+                info_sheet['A9'] = "Total Students:"
+                info_sheet['B9'] = len(students)
+                
+                # Student Performance Sheet
+                student_sheet = workbook.create_sheet("Student Performance")
+                
+                # Add header
+                student_sheet['A1'] = "Student"
+                student_sheet['B1'] = "Email"
+                student_sheet['C1'] = "Program"
+                student_sheet['D1'] = "Performance"
+                student_sheet['E1'] = "Grade"
+                student_sheet['F1'] = "Attendance"
+                
+                # Style header row
+                for cell in student_sheet['A1:F1'][0]:
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill(start_color="DDDDDD", end_color="DDDDDD", fill_type="solid")
+                
+                # Add student data
+                row = 2
+                for student in students:
+                    student_id = student['id']
+                    perf = student_performance.get(student_id, {'average_score': 0, 'attendance_rate': 0, 'grade': 'N/A'})
+                    
+                    student_sheet[f'A{row}'] = student['name']
+                    student_sheet[f'B{row}'] = student['email']
+                    student_sheet[f'C{row}'] = student['program']
+                    student_sheet[f'D{row}'] = f"{perf['average_score']}%"
+                    student_sheet[f'E{row}'] = perf['grade']
+                    student_sheet[f'F{row}'] = f"{perf['attendance_rate']}%"
+                    row += 1
+                
+                # Assessment Statistics Sheet
+                assess_sheet = workbook.create_sheet("Assessment Statistics")
+                
+                # Add header
+                assess_sheet['A1'] = "Assessment"
+                assess_sheet['B1'] = "Type"
+                assess_sheet['C1'] = "Max Points"
+                assess_sheet['D1'] = "Avg Score"
+                assess_sheet['E1'] = "Max Score"
+                assess_sheet['F1'] = "Min Score"
+                assess_sheet['G1'] = "Completion Rate"
+                
+                # Style header row
+                for cell in assess_sheet['A1:G1'][0]:
+                    cell.font = Font(bold=True)
+                    cell.fill = PatternFill(start_color="DDDDDD", end_color="DDDDDD", fill_type="solid")
+                
+                # Add assessment data
+                row = 2
+                for stat in assessment_stats:
+                    assess_sheet[f'A{row}'] = stat['name']
+                    assess_sheet[f'B{row}'] = stat['type']
+                    assess_sheet[f'C{row}'] = stat['max_points']
+                    assess_sheet[f'D{row}'] = stat['avg_score']
+                    assess_sheet[f'E{row}'] = stat['max_score']
+                    assess_sheet[f'F{row}'] = stat['min_score']
+                    assess_sheet[f'G{row}'] = f"{stat['completion_rate']}%"
+                    row += 1
+                
+                # Auto-adjust column width for all sheets
+                for sheet in workbook.worksheets:
+                    for column in sheet.columns:
+                        max_length = 0
+                        column_letter = column[0].column_letter
+                        for cell in column:
+                            if cell.value:
+                                max_length = max(max_length, len(str(cell.value)))
+                        adjusted_width = (max_length + 2)
+                        sheet.column_dimensions[column_letter].width = adjusted_width
+                
+                # Save workbook
+                workbook.save(output)
+                output.seek(0)
+                
+                # Create response
+                response = make_response(output.getvalue())
+                response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                response.headers['Content-Disposition'] = f'attachment; filename=course_report_{course_id}.xlsx'
+                
+                conn.close()
+                return response
+                
+            except Exception as e:
+                flash(f'Error generating Excel report: {str(e)}', 'danger')
+                conn.close()
+                return redirect(url_for('lecturer_dashboard'))
+        
+        else:
+            flash('Invalid report type', 'danger')
+            conn.close()
+            return redirect(url_for('lecturer_dashboard'))
+            
+    except Exception as e:
+        flash(f'Error generating report: {str(e)}', 'danger')
+        conn.close()
+        return redirect(url_for('lecturer_dashboard'))
+
+
 @app.route('/generate_at_risk_report/<report_type>')
 def generate_at_risk_report(report_type):
     """Generate at-risk students report in PDF or Excel format"""
